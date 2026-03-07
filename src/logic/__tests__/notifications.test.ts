@@ -56,7 +56,7 @@ describe('checkExpiringGrants', () => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   }
 
-  const makeGrant = (id: string, expiryDays: number): Grant => ({
+  const makeGrant = (id: number, expiryDays: number): Grant => ({
     id,
     fiscalYear: 2025,
     grantDate: '2025-04-01',
@@ -67,40 +67,40 @@ describe('checkExpiringGrants', () => {
 
   it('returns grants expiring within threshold', () => {
     const grants = [
-      makeGrant('soon', 10),
-      makeGrant('later', 60),
-      makeGrant('past', -5),
+      makeGrant(1, 10),
+      makeGrant(2, 60),
+      makeGrant(3, -5),
     ]
 
     const result = checkExpiringGrants(grants, 30)
     expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('soon')
+    expect(result[0].id).toBe(1)
   })
 
   it('returns empty array when no grants are expiring', () => {
-    const grants = [makeGrant('far', 90)]
+    const grants = [makeGrant(1, 90)]
     expect(checkExpiringGrants(grants)).toEqual([])
   })
 
   it('includes grants expiring today', () => {
-    const grants = [makeGrant('today', 0)]
+    const grants = [makeGrant(1, 0)]
     const result = checkExpiringGrants(grants, 30)
     expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('today')
+    expect(result[0].id).toBe(1)
   })
 
   it('includes grants expiring exactly at threshold', () => {
-    const grants = [makeGrant('edge', 30)]
+    const grants = [makeGrant(1, 30)]
     const result = checkExpiringGrants(grants, 30)
     expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('edge')
+    expect(result[0].id).toBe(1)
   })
 
   it('uses default threshold of 30 days', () => {
-    const grants = [makeGrant('within', 25), makeGrant('outside', 35)]
+    const grants = [makeGrant(1, 25), makeGrant(2, 35)]
     const result = checkExpiringGrants(grants)
     expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('within')
+    expect(result[0].id).toBe(1)
   })
 })
 
@@ -108,7 +108,7 @@ describe('showExpiryNotification', () => {
   it('creates notification with correct message', () => {
     setupNotificationMock('granted')
     const grant: Grant = {
-      id: 'g1',
+      id: 1,
       fiscalYear: 2025,
       grantDate: '2025-04-01',
       expiryDate: '2027-03-31',
@@ -122,7 +122,7 @@ describe('showExpiryNotification', () => {
       '有休の期限が近づいています',
       expect.objectContaining({
         body: '3/31 に有休が失効します',
-        tag: 'expiry-g1',
+        tag: 'expiry-1',
       }),
     )
   })
@@ -130,7 +130,7 @@ describe('showExpiryNotification', () => {
   it('does nothing when permission is not granted', () => {
     setupNotificationMock('denied')
     const grant: Grant = {
-      id: 'g1',
+      id: 1,
       fiscalYear: 2025,
       grantDate: '2025-04-01',
       expiryDate: '2027-03-31',
