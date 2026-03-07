@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme {
+  --color-lavender: #C4B5FD;
+  --color-lavender-light: #EDE9FE;
+  --color-lavender-dark: #7C3AED;
+  --color-mint: #A7F3D0;
+  --color-mint-light: #D1FAE5;
+  --color-mint-dark: #059669;
+  --color-peach: #FECDD3;
+  --color-peach-light: #FFF1F2;
+  --color-peach-dark: #E11D48;
+  --color-bg: #FAF8FC;
+  --color-text: #2D2A3E;
+  --color-text-sub: #6B7280;
+  --color-surface: #F5F3F7;
+  --color-surface-bright: #FDFCFE;
+  --color-overlay: #3D3852;
+
+  --font-sans: "UD Digi Kyokasho NK-R", "Noto Sans JP", sans-serif;
+  --leading-relaxed: 1.8;
+}

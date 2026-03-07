@@ -1,0 +1,320 @@
+import { useState, useRef } from 'react';
+import { Card } from '../components/Card';
+import { Collapsible } from '../components/Collapsible';
+import { Modal } from '../components/Modal';
+import { GrantForm } from '../components/GrantForm';
+import { GrantRuleSettings } from '../components/GrantRuleSettings';
+import { useGrants } from '../hooks/useGrants';
+import { useUsages } from '../hooks/useUsages';
+import { useSettings } from '../hooks/useSettings';
+import { useGrantRules } from '../hooks/useGrantRules';
+import { getDefaultGrantRules } from '../logic/grant-rules';
+import { requestNotificationPermission } from '../logic/notifications';
+import { exportToJson, parseImportData } from '../logic/export-import';
+import { generateAutoGrants } from '../logic/auto-grant';
+import { db } from '../db';
+
+export function SettingsPage() {
+  const { grants, addGrant, deleteGrant } = useGrants();
+  const { usages } = useUsages();
+  const { settings, updateSettings } = useSettings();
+  const { rules } = useGrantRules();
+
+  const [showGrantForm, setShowGrantForm] = useState(false);
+  const [notificationEnabled, setNotificationEnabled] = useState(
+    () => 'Notification' in window && Notification.permission === 'granted',
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleAutoGrant() {
+    if (!settings?.hireDate) {
+      alert('さきに「きほん設定」でにゅうしゃ日を入力してね');
+      return;
+    }
+    let activeRules = rules ?? [];
+    if (activeRules.length === 0) {
+      activeRules = getDefaultGrantRules();
+    }
+    const newGrants = generateAutoGrants(
+      settings.hireDate,
+      activeRules,
+      grants ?? [],
+    );
+    if (newGrants.length === 0) {
+      alert('ついかするふよはないよ');
+      return;
+    }
+    for (const g of newGrants) {
+      await addGrant(g);
+    }
+    alert(`${newGrants.length}件のふよをついかしたよ！`);
+  }
+
+  async function handleAddGrant(data: {
+    fiscalYear: number;
+    grantDate: string;
+    expiryDate: string;
+    totalDays: number;
+  }) {
+    await addGrant({ ...data, source: 'new' });
+    setShowGrantForm(false);
+  }
+
+  async function handleToggleNotification() {
+    if (notificationEnabled) {
+      setNotificationEnabled(false);
+      return;
+    }
+    const granted = await requestNotificationPermission();
+    setNotificationEnabled(granted);
+    if (!granted) {
+      alert('つうちのきょかが取れませんでした');
+    }
+  }
+
+  function handleExport() {
+    if (!grants || !usages || !settings) return;
+    const json = exportToJson({ grants, usages, settings, grantRules: rules ?? [] });
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ukyu-backup-${today}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const data = parseImportData(text);
+
+      const confirmed = window.confirm(
+        'いまのデータをすべてけして、よみこんだデータにおきかえるよ。いい？',
+      );
+      if (!confirmed) return;
+
+      await db.grants.clear();
+      await db.usages.clear();
+
+      if (data.grants.length > 0) {
+        await db.grants.bulkAdd(data.grants);
+      }
+      if (data.usages.length > 0) {
+        await db.usages.bulkAdd(data.usages);
+      }
+      if (data.settings) {
+        const existing = await db.settings.toCollection().first();
+        if (existing?.id !== undefined) {
+          await db.settings.update(existing.id, data.settings);
+        } else {
+          await db.settings.add(data.settings);
+        }
+      }
+      if (data.grantRules && data.grantRules.length > 0) {
+        await db.grantRules.clear();
+        await db.grantRules.bulkAdd(data.grantRules);
+      }
+
+      alert('データをよみこみました');
+    } catch (err) {
+      alert(
+        err instanceof Error ? err.message : 'よみこみに失敗しました',
+      );
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const sortedGrants = [...(grants ?? [])].sort((a, b) =>
+    b.grantDate.localeCompare(a.grantDate),
+  );
+
+  return (
+    <div className="space-y-4 pb-24">
+      <h1 className="text-xl font-bold leading-relaxed">せってい</h1>
+
+      {/* 1. 有給のふよ */}
+      <Collapsible title="🎁 有給のふよ" defaultOpen={true}>
+        <Card>
+          {sortedGrants.length > 0 ? (
+            <ul className="space-y-2">
+              {sortedGrants.map((grant) => {
+                const expired = grant.expiryDate < today;
+                return (
+                  <li
+                    key={grant.id}
+                    className={`flex items-center justify-between rounded-xl px-3 py-2 ${
+                      expired ? 'bg-gray-100 opacity-60' : 'bg-gray-50'
+                    }`}
+                  >
+                    <div className="text-sm leading-relaxed">
+                      <span className="font-bold">{grant.fiscalYear}年度</span>
+                      <span className="ml-2 text-text-sub">
+                        {grant.totalDays}日
+                      </span>
+                      <span className="ml-2 text-text-sub">
+                        〜 {grant.expiryDate}
+                      </span>
+                      {expired && (
+                        <span className="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-xs text-text-sub">
+                          きげんぎれ
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => grant.id && deleteGrant(grant.id)}
+                      className="ml-2 min-w-[2.5rem] min-h-[2.5rem] flex items-center justify-center text-red-400 hover:text-red-600 active:scale-95 transition-transform"
+                      aria-label="ふよを削除"
+                    >
+                      ✕
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm leading-relaxed text-text-sub">
+              まだふよがありません
+            </p>
+          )}
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={handleAutoGrant}
+              className="flex-1 rounded-xl bg-lavender-dark py-2 text-sm font-bold leading-relaxed text-surface-bright active:scale-95 transition-transform"
+            >
+              🪄 じどうふよ
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowGrantForm(true)}
+              className="flex-1 rounded-xl border-2 border-dashed border-gray-200 py-2 text-sm font-bold leading-relaxed text-text-sub hover:border-lavender hover:text-lavender-dark active:scale-95 transition-transform"
+            >
+              + しゅどうついか
+            </button>
+          </div>
+        </Card>
+      </Collapsible>
+
+      {/* 2. きほん設定 */}
+      <Collapsible title="👤 きほん設定" defaultOpen={false}>
+        <Card>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="hire-date-settings" className="block text-sm font-bold leading-relaxed">
+                にゅうしゃ日
+              </label>
+              <input
+                id="hire-date-settings"
+                type="date"
+                value={settings?.hireDate ?? ''}
+                onChange={(e) => updateSettings({ hireDate: e.target.value })}
+                className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 leading-relaxed"
+              />
+              <p className="mt-1 text-xs text-text-sub leading-relaxed">
+                じどうふよのけいさんに使うよ
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="fiscal-year-start" className="block text-sm font-bold leading-relaxed">
+                ねんどのはじまり
+              </label>
+              <input
+                id="fiscal-year-start"
+                type="text"
+                placeholder="04-01"
+                value={settings?.fiscalYearStart ?? ''}
+                onChange={(e) =>
+                  updateSettings({ fiscalYearStart: e.target.value })
+                }
+                className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 leading-relaxed"
+              />
+              <p className="mt-1 text-xs text-text-sub leading-relaxed">
+                れい: 04-01（4がつ1にち）
+              </p>
+            </div>
+          </div>
+        </Card>
+      </Collapsible>
+
+      {/* 3. ふよルール */}
+      <Collapsible title="📊 ふよルール" defaultOpen={false}>
+        <Card>
+          <GrantRuleSettings />
+        </Card>
+      </Collapsible>
+
+      {/* 4. つうち */}
+      <Collapsible title="🔔 つうち" defaultOpen={false}>
+        <Card>
+          <button
+            type="button"
+            onClick={handleToggleNotification}
+            className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-bold leading-relaxed active:scale-95 transition-transform ${
+              notificationEnabled
+                ? 'bg-lavender-light text-lavender-dark'
+                : 'bg-gray-50 text-text-sub'
+            }`}
+          >
+            <span>つうち</span>
+            <span className="text-lg">{notificationEnabled ? 'ON' : 'OFF'}</span>
+          </button>
+          <p className="mt-2 text-xs text-text-sub leading-relaxed">
+            有給のきげんがちかづいたら おしらせするよ
+          </p>
+        </Card>
+      </Collapsible>
+
+      {/* 5. データのかんり */}
+      <Collapsible title="💾 データのかんり" defaultOpen={false}>
+        <Card>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleExport}
+              className="flex-1 rounded-xl bg-lavender-dark py-2 text-sm font-bold leading-relaxed text-surface-bright active:scale-95 transition-transform"
+            >
+              エクスポート
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1 rounded-xl border border-lavender-dark py-2 text-sm font-bold leading-relaxed text-lavender-dark active:scale-95 transition-transform"
+            >
+              インポート
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleImport}
+              className="hidden"
+            />
+          </div>
+          <p className="mt-2 text-xs text-text-sub leading-relaxed">
+            データをバックアップしたり、ほかのデバイスにうつせるよ
+          </p>
+        </Card>
+      </Collapsible>
+
+      {/* Grant form modal */}
+      <Modal
+        open={showGrantForm}
+        onClose={() => setShowGrantForm(false)}
+        title="🎁 有給をついか"
+      >
+        <GrantForm
+          onSubmit={handleAddGrant}
+          onCancel={() => setShowGrantForm(false)}
+        />
+      </Modal>
+    </div>
+  );
+}
