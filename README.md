@@ -107,6 +107,6 @@ pnpm vitest --run
 | BottomNav UI | 4 |
 | DB 操作 | 2 |
 
-## License
+## ライセンス / License
 
 [MIT](LICENSE)
