@@ -107,6 +107,6 @@ pnpm vitest --run
 | BottomNav UI | 4 |
 | DB 操作 | 2 |
 
-## ライセンス / License
+## ライセンス
 
-[MIT](LICENSE)
+All Rights Reserved. © 2026 Yusuke I
