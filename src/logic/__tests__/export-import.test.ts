@@ -6,6 +6,8 @@ const validData: ExportData = {
   grants: [
     {
       id: 1,
+      profileId: 1,
+      leaveKind: 'paid',
       fiscalYear: 2025,
       grantDate: '2025-04-01',
       expiryDate: '2027-03-31',
@@ -16,6 +18,7 @@ const validData: ExportData = {
   usages: [
     {
       id: 1,
+      profileId: 1,
       date: '2025-05-01',
       type: 'full',
       status: 'used',
@@ -25,17 +28,17 @@ const validData: ExportData = {
   ],
   settings: {
     id: 1,
+    profileId: 1,
     fiscalYearStart: '04-01',
     defaultGrantDate: '04-01',
-    hireDate: '2020-04-01',
   },
 };
 
 const validDataWithRules: ExportData = {
   ...validData,
   grantRules: [
-    { id: 1, yearsOfService: 0.5, grantDays: 10 },
-    { id: 2, yearsOfService: 1.5, grantDays: 11 },
+    { id: 1, profileId: 1, yearsOfService: 0.5, grantDays: 10 },
+    { id: 2, profileId: 1, yearsOfService: 1.5, grantDays: 11 },
   ],
 };
 
@@ -74,7 +77,7 @@ describe('parseImportData', () => {
     const result = parseImportData(json);
     expect(result.grants).toHaveLength(1);
     expect(result.usages).toHaveLength(1);
-    expect(result.settings.hireDate).toBe('2020-04-01');
+    expect(result.settings.profileId).toBe(1);
   });
 
   it('should parse data with grantRules', () => {

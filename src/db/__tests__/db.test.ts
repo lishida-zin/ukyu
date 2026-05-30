@@ -7,6 +7,8 @@ let dbCounter = 0;
 
 function makeGrant(overrides?: Partial<Grant>): Grant {
   return {
+    profileId: 1,
+    leaveKind: 'paid',
     fiscalYear: 2025,
     grantDate: '2025-04-01',
     expiryDate: '2027-03-31',
@@ -18,6 +20,7 @@ function makeGrant(overrides?: Partial<Grant>): Grant {
 
 function makeUsage(overrides?: Partial<Usage>): Usage {
   return {
+    profileId: 1,
     date: '2025-06-15',
     type: 'full',
     status: 'planned',
@@ -100,9 +103,9 @@ describe('UkyuDatabase', () => {
   describe('settings', () => {
     it('should add and retrieve settings', async () => {
       const settings: Settings = {
+        profileId: 1,
         fiscalYearStart: '04-01',
         defaultGrantDate: '04-01',
-        hireDate: '2020-04-01',
       };
       const id = await db.settings.add(settings);
       const result = await db.settings.get(id);
@@ -111,29 +114,29 @@ describe('UkyuDatabase', () => {
 
     it('should update settings', async () => {
       const settings: Settings = {
+        profileId: 1,
         fiscalYearStart: '04-01',
         defaultGrantDate: '04-01',
-        hireDate: '2020-04-01',
       };
       const id = await db.settings.add(settings);
-      await db.settings.update(id, { hireDate: '2021-04-01' });
+      await db.settings.update(id, { fiscalYearStart: '01-01' });
       const result = await db.settings.get(id);
-      expect(result!.hireDate).toBe('2021-04-01');
+      expect(result!.fiscalYearStart).toBe('01-01');
     });
   });
 
   describe('grantRules', () => {
     it('should add and retrieve a grant rule', async () => {
-      const rule: GrantRule = { yearsOfService: 0.5, grantDays: 10 };
+      const rule: GrantRule = { profileId: 1, yearsOfService: 0.5, grantDays: 10 };
       const id = await db.grantRules.add(rule);
       const result = await db.grantRules.get(id);
       expect(result).toMatchObject({ yearsOfService: 0.5, grantDays: 10 });
     });
 
     it('should filter rules by yearsOfService', async () => {
-      await db.grantRules.add({ yearsOfService: 0.5, grantDays: 10 });
-      await db.grantRules.add({ yearsOfService: 1.5, grantDays: 11 });
-      await db.grantRules.add({ yearsOfService: 2.5, grantDays: 12 });
+      await db.grantRules.add({ profileId: 1, yearsOfService: 0.5, grantDays: 10 });
+      await db.grantRules.add({ profileId: 1, yearsOfService: 1.5, grantDays: 11 });
+      await db.grantRules.add({ profileId: 1, yearsOfService: 2.5, grantDays: 12 });
       const results = await db.grantRules
         .where('yearsOfService')
         .belowOrEqual(1.5)
@@ -142,7 +145,7 @@ describe('UkyuDatabase', () => {
     });
 
     it('should delete a grant rule', async () => {
-      const rule: GrantRule = { yearsOfService: 0.5, grantDays: 10 };
+      const rule: GrantRule = { profileId: 1, yearsOfService: 0.5, grantDays: 10 };
       const id = await db.grantRules.add(rule);
       await db.grantRules.delete(id);
       const result = await db.grantRules.get(id);

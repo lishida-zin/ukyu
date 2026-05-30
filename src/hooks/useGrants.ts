@@ -1,17 +1,25 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import type { Grant } from '../db/types';
+import { useActiveProfileId } from '../contexts/ActiveProfileContext';
 
 export function useGrants(fiscalYear?: number) {
+  const profileId = useActiveProfileId();
   const grants = useLiveQuery(() => {
+    if (profileId === undefined) return [];
     if (fiscalYear !== undefined) {
-      return db.grants.where('fiscalYear').equals(fiscalYear).toArray();
+      return db.grants
+        .where('profileId')
+        .equals(profileId)
+        .filter((grant) => grant.fiscalYear === fiscalYear)
+        .toArray();
     }
-    return db.grants.toArray();
-  }, [fiscalYear]);
+    return db.grants.where('profileId').equals(profileId).toArray();
+  }, [profileId, fiscalYear]);
 
-  async function addGrant(grant: Omit<Grant, 'id'>): Promise<number> {
-    return db.grants.add(grant);
+  async function addGrant(grant: Omit<Grant, 'id' | 'profileId'>): Promise<number> {
+    if (profileId === undefined) throw new Error('アクティブプロフィールがありません');
+    return db.grants.add({ ...grant, profileId });
   }
 
   async function updateGrant(

@@ -1,5 +1,5 @@
-import type { Grant, GrantRule } from '../db/types'
-import { getGrantDaysByRule } from './grant-rules'
+import type { Grant } from '../db/types'
+import { getGrantDaysByRule, type GrantRuleConfig } from './grant-rules'
 
 /**
  * 入社日とルールから、付与されるべきGrant一覧を生成する。
@@ -8,10 +8,10 @@ import { getGrantDaysByRule } from './grant-rules'
  */
 export function generateAutoGrants(
   hireDate: string,
-  rules: GrantRule[],
+  rules: GrantRuleConfig[],
   existingGrants: Grant[],
   today?: string,
-): Omit<Grant, 'id'>[] {
+): Omit<Grant, 'id' | 'profileId'>[] {
   if (!hireDate || rules.length === 0) return []
 
   const todayDate = today ? new Date(today) : new Date()
@@ -34,8 +34,10 @@ export function generateAutoGrants(
     firstGrantYear = hireYear + 1
   }
 
-  const newGrants: Omit<Grant, 'id'>[] = []
-  const existingGrantDates = new Set(existingGrants.map((g) => g.grantDate))
+  const newGrants: Omit<Grant, 'id' | 'profileId'>[] = []
+  const existingGrantDates = new Set(
+    existingGrants.filter((g) => g.leaveKind === 'paid').map((g) => g.grantDate),
+  )
 
   for (let year = firstGrantYear; ; year++) {
     const grantDate = `${year}-12-01`
@@ -63,6 +65,7 @@ export function generateAutoGrants(
     const fiscalYear = year
 
     newGrants.push({
+      leaveKind: 'paid',
       fiscalYear,
       grantDate,
       expiryDate: expiry.toISOString().split('T')[0],

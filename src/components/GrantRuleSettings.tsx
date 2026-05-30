@@ -1,13 +1,13 @@
 import { useGrantRules } from '../hooks/useGrantRules';
-import { useSettings } from '../hooks/useSettings';
+import { useActiveProfile } from '../contexts/ActiveProfileContext';
 import { calculateYearsOfService } from '../logic/grant-rules';
 
 export function GrantRuleSettings() {
   const { rules, updateRule, deleteRule, loadDefaults, getRecommendedDays } =
     useGrantRules();
-  const { settings } = useSettings();
+  const activeProfile = useActiveProfile();
 
-  const hireDate = settings?.hireDate ?? '';
+  const hireDate = activeProfile?.hireDate ?? '';
   const today = new Date().toISOString().slice(0, 10);
   const yearsOfService = hireDate
     ? calculateYearsOfService(hireDate, today)

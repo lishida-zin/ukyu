@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { generateAutoGrants } from '../auto-grant'
-import type { Grant, GrantRule } from '../../db/types'
+import type { Grant } from '../../db/types'
+import type { GrantRuleConfig } from '../grant-rules'
 
-const defaultRules: GrantRule[] = [
+const defaultRules: GrantRuleConfig[] = [
   { yearsOfService: 0.5, grantDays: 10 },
   { yearsOfService: 1.5, grantDays: 11 },
   { yearsOfService: 2.5, grantDays: 12 },
@@ -32,7 +33,16 @@ describe('generateAutoGrants', () => {
 
   it('既存のGrantがあればスキップ', () => {
     const existing: Grant[] = [
-      { id: 1, fiscalYear: 2022, grantDate: '2022-12-01', expiryDate: '2024-11-30', totalDays: 10, source: 'new' },
+      {
+        id: 1,
+        profileId: 1,
+        leaveKind: 'paid',
+        fiscalYear: 2022,
+        grantDate: '2022-12-01',
+        expiryDate: '2024-11-30',
+        totalDays: 10,
+        source: 'new',
+      },
     ]
     const grants = generateAutoGrants('2022-04-01', defaultRules, existing, '2024-06-01')
 
@@ -71,5 +81,10 @@ describe('generateAutoGrants', () => {
   it('sourceは全て"new"', () => {
     const grants = generateAutoGrants('2022-04-01', defaultRules, [], '2024-01-01')
     grants.forEach((g) => expect(g.source).toBe('new'))
+  })
+
+  it('leaveKindは全て"paid"', () => {
+    const grants = generateAutoGrants('2022-04-01', defaultRules, [], '2024-01-01')
+    grants.forEach((g) => expect(g.leaveKind).toBe('paid'))
   })
 })

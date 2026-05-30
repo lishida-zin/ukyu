@@ -58,6 +58,8 @@ describe('checkExpiringGrants', () => {
 
   const makeGrant = (id: number, expiryDays: number): Grant => ({
     id,
+    profileId: 1,
+    leaveKind: 'paid',
     fiscalYear: 2025,
     grantDate: '2025-04-01',
     expiryDate: daysFromNow(expiryDays),
@@ -109,6 +111,8 @@ describe('showExpiryNotification', () => {
     setupNotificationMock('granted')
     const grant: Grant = {
       id: 1,
+      profileId: 1,
+      leaveKind: 'paid',
       fiscalYear: 2025,
       grantDate: '2025-04-01',
       expiryDate: '2027-03-31',
@@ -131,6 +135,8 @@ describe('showExpiryNotification', () => {
     setupNotificationMock('denied')
     const grant: Grant = {
       id: 1,
+      profileId: 1,
+      leaveKind: 'paid',
       fiscalYear: 2025,
       grantDate: '2025-04-01',
       expiryDate: '2027-03-31',

@@ -61,8 +61,8 @@ describe('Calendar', () => {
     const y = now.getFullYear()
     const m = String(now.getMonth() + 1).padStart(2, '0')
     const usages: Usage[] = [
-      { id: 1, date: `${y}-${m}-10`, type: 'full', status: 'planned', grantId: 1, memo: '' },
-      { id: 2, date: `${y}-${m}-10`, type: 'am', status: 'used', grantId: 1, memo: '' },
+      { id: 1, profileId: 1, date: `${y}-${m}-10`, type: 'full', status: 'planned', grantId: 1, memo: '' },
+      { id: 2, profileId: 1, date: `${y}-${m}-10`, type: 'am', status: 'used', grantId: 1, memo: '' },
     ]
     render(<Calendar usages={usages} onDateClick={vi.fn()} />)
     expect(screen.getByText('全予')).toBeInTheDocument()

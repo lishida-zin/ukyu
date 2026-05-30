@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { getUsageDays } from '../logic/leave-calculator';
 import { getGrantMonth, getCurrentCycle } from '../logic/grant-cycle';
+import { useActiveProfileId } from '../contexts/ActiveProfileContext';
 
 const EXPIRY_WARNING_DAYS = 30;
 
@@ -21,10 +22,29 @@ export interface GrantBalance {
 }
 
 export function useLeaveBalance() {
+  const profileId = useActiveProfileId();
   const result = useLiveQuery(async () => {
-    const grants = await db.grants.toArray();
-    const usages = await db.usages.toArray();
     const now = new Date().toISOString().slice(0, 10);
+    if (profileId === undefined) {
+      return {
+        balances: [],
+        cycleUsed: 0,
+        cyclePlanned: 0,
+        cycleExpiringDays: 0,
+        cycle: getCurrentCycle(12, now),
+      };
+    }
+
+    const allGrants = await db.grants.where('profileId').equals(profileId).toArray();
+    const grants = allGrants.filter((grant) => grant.leaveKind === 'paid');
+    const allUsages = await db.usages.where('profileId').equals(profileId).toArray();
+    const paidGrantIds = new Set(grants.flatMap((grant) => (grant.id === undefined ? [] : [grant.id])));
+    const allGrantIds = new Set(
+      allGrants.flatMap((grant) => (grant.id === undefined ? [] : [grant.id])),
+    );
+    const usages = allUsages.filter(
+      (usage) => paidGrantIds.has(usage.grantId) || !allGrantIds.has(usage.grantId),
+    );
 
     const grantIds = new Set(grants.map((g) => g.id));
 
@@ -98,8 +118,8 @@ export function useLeaveBalance() {
     balances.sort((a, b) => b.grantDate.localeCompare(a.grantDate));
 
     // サイクル計算（入社日から付与月を動的に決定）
-    const settings = await db.settings.toCollection().first();
-    const grantMonth = getGrantMonth(settings?.hireDate);
+    const activeProfile = await db.profiles.get(profileId);
+    const grantMonth = getGrantMonth(activeProfile?.hireDate);
     const cycle = getCurrentCycle(grantMonth, now);
 
     const cycleUsages = usages.filter(
@@ -124,7 +144,7 @@ export function useLeaveBalance() {
       .reduce((sum, b) => sum + b.remainingDays, 0);
 
     return { balances, cycleUsed, cyclePlanned, cycleExpiringDays, cycle };
-  });
+  }, [profileId]);
 
   const balances = result?.balances;
   const totalRemaining =

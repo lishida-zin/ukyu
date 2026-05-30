@@ -8,6 +8,8 @@ import { useGrants } from '../hooks/useGrants';
 import { useUsages } from '../hooks/useUsages';
 import { useSettings } from '../hooks/useSettings';
 import { useGrantRules } from '../hooks/useGrantRules';
+import { useProfiles } from '../hooks/useProfiles';
+import { useActiveProfile } from '../contexts/ActiveProfileContext';
 import { getDefaultGrantRules } from '../logic/grant-rules';
 import { requestNotificationPermission } from '../logic/notifications';
 import { exportToJson, parseImportData } from '../logic/export-import';
@@ -19,6 +21,8 @@ export function SettingsPage() {
   const { usages } = useUsages();
   const { settings, updateSettings } = useSettings();
   const { rules } = useGrantRules();
+  const { updateProfile } = useProfiles();
+  const activeProfile = useActiveProfile();
 
   const [showGrantForm, setShowGrantForm] = useState(false);
   const [notificationEnabled, setNotificationEnabled] = useState(
@@ -27,16 +31,13 @@ export function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleAutoGrant() {
-    if (!settings?.hireDate) {
+    if (!activeProfile?.hireDate) {
       alert('さきに「きほん設定」でにゅうしゃ日を入力してね');
       return;
     }
-    let activeRules = rules ?? [];
-    if (activeRules.length === 0) {
-      activeRules = getDefaultGrantRules();
-    }
+    const activeRules = rules && rules.length > 0 ? rules : getDefaultGrantRules();
     const newGrants = generateAutoGrants(
-      settings.hireDate,
+      activeProfile.hireDate,
       activeRules,
       grants ?? [],
     );
@@ -56,7 +57,7 @@ export function SettingsPage() {
     expiryDate: string;
     totalDays: number;
   }) {
-    await addGrant({ ...data, source: 'new' });
+    await addGrant({ ...data, source: 'new', leaveKind: 'paid' });
     setShowGrantForm(false);
   }
 
@@ -213,8 +214,12 @@ export function SettingsPage() {
               <input
                 id="hire-date-settings"
                 type="date"
-                value={settings?.hireDate ?? ''}
-                onChange={(e) => updateSettings({ hireDate: e.target.value })}
+                value={activeProfile?.hireDate ?? ''}
+                onChange={(e) => {
+                  if (activeProfile?.id) {
+                    void updateProfile(activeProfile.id, { hireDate: e.target.value });
+                  }
+                }}
                 className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 leading-relaxed"
               />
               <p className="mt-1 text-xs text-text-sub leading-relaxed">

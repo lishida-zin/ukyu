@@ -1,5 +1,7 @@
 import type { GrantRule } from '../db/types';
 
+export type GrantRuleConfig = Pick<GrantRule, 'yearsOfService' | 'grantDays'>;
+
 export function calculateYearsOfService(
   hireDate: string,
   targetDate: string,
@@ -13,7 +15,7 @@ export function calculateYearsOfService(
 }
 
 export function getGrantDaysByRule(
-  rules: GrantRule[],
+  rules: GrantRuleConfig[],
   yearsOfService: number,
 ): number {
   // Sort rules descending by yearsOfService, find first that applies
@@ -28,7 +30,7 @@ export function getGrantDaysByRule(
   return 0;
 }
 
-export function getDefaultGrantRules(): GrantRule[] {
+export function getDefaultGrantRules(): GrantRuleConfig[] {
   return [
     { yearsOfService: 0.5, grantDays: 10 },
     { yearsOfService: 1.5, grantDays: 11 },

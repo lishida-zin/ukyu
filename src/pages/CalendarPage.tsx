@@ -192,7 +192,7 @@ export function CalendarPage({ initialDate, onInitialDateConsumed }: CalendarPag
 
   const today = new Date().toISOString().slice(0, 10)
   const activeGrants = (grants ?? [])
-    .filter((g) => g.expiryDate >= today)
+    .filter((g) => g.leaveKind === 'paid' && g.expiryDate >= today)
     .sort((a, b) => a.expiryDate.localeCompare(b.expiryDate))
 
   const existingUsage = selectedDate

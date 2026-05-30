@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import type { GrantRule } from '../db/types';
+import { useActiveProfileId } from '../contexts/ActiveProfileContext';
 import {
   calculateYearsOfService,
   getGrantDaysByRule,
@@ -8,12 +9,18 @@ import {
 } from '../logic/grant-rules';
 
 export function useGrantRules() {
-  const rules = useLiveQuery(() =>
-    db.grantRules.orderBy('yearsOfService').toArray(),
-  );
+  const profileId = useActiveProfileId();
+  const rules = useLiveQuery(() => {
+    if (profileId === undefined) return [];
+    return db.grantRules
+      .where('profileId')
+      .equals(profileId)
+      .sortBy('yearsOfService');
+  }, [profileId]);
 
-  async function addRule(rule: Omit<GrantRule, 'id'>): Promise<number> {
-    return db.grantRules.add(rule);
+  async function addRule(rule: Omit<GrantRule, 'id' | 'profileId'>): Promise<number> {
+    if (profileId === undefined) throw new Error('アクティブプロフィールがありません');
+    return db.grantRules.add({ ...rule, profileId });
   }
 
   async function updateRule(
@@ -28,9 +35,10 @@ export function useGrantRules() {
   }
 
   async function loadDefaults(): Promise<void> {
-    await db.grantRules.clear();
+    if (profileId === undefined) throw new Error('アクティブプロフィールがありません');
+    await db.grantRules.where('profileId').equals(profileId).delete();
     const defaults = getDefaultGrantRules();
-    await db.grantRules.bulkAdd(defaults);
+    await db.grantRules.bulkAdd(defaults.map((rule) => ({ ...rule, profileId })));
   }
 
   function getRecommendedDays(hireDate: string, targetDate?: string): number {

@@ -22,6 +22,8 @@ describe('getUsageDays', () => {
 
 describe('calculateRemainingDays', () => {
   const grant: Grant = {
+    profileId: 1,
+    leaveKind: 'paid',
     fiscalYear: 2025,
     grantDate: '2025-04-01',
     expiryDate: '2027-03-31',
@@ -35,24 +37,24 @@ describe('calculateRemainingDays', () => {
 
   it('should subtract full day usages', () => {
     const usages: Usage[] = [
-      { date: '2025-05-01', type: 'full', status: 'used', grantId: 1, memo: '' },
-      { date: '2025-05-02', type: 'full', status: 'used', grantId: 1, memo: '' },
+      { profileId: 1, date: '2025-05-01', type: 'full', status: 'used', grantId: 1, memo: '' },
+      { profileId: 1, date: '2025-05-02', type: 'full', status: 'used', grantId: 1, memo: '' },
     ];
     expect(calculateRemainingDays(grant, usages)).toBe(18);
   });
 
   it('should subtract half day usages', () => {
     const usages: Usage[] = [
-      { date: '2025-05-01', type: 'am', status: 'used', grantId: 1, memo: '' },
-      { date: '2025-05-02', type: 'pm', status: 'used', grantId: 1, memo: '' },
+      { profileId: 1, date: '2025-05-01', type: 'am', status: 'used', grantId: 1, memo: '' },
+      { profileId: 1, date: '2025-05-02', type: 'pm', status: 'used', grantId: 1, memo: '' },
     ];
     expect(calculateRemainingDays(grant, usages)).toBe(19);
   });
 
   it('should handle mixed usages', () => {
     const usages: Usage[] = [
-      { date: '2025-05-01', type: 'full', status: 'used', grantId: 1, memo: '' },
-      { date: '2025-05-02', type: 'am', status: 'planned', grantId: 1, memo: '' },
+      { profileId: 1, date: '2025-05-01', type: 'full', status: 'used', grantId: 1, memo: '' },
+      { profileId: 1, date: '2025-05-02', type: 'am', status: 'planned', grantId: 1, memo: '' },
     ];
     expect(calculateRemainingDays(grant, usages)).toBe(18.5);
   });
