@@ -40,7 +40,7 @@ export function GrantForm({ onSubmit, onCancel }: Props) {
           type="number"
           value={fiscalYear}
           onChange={(e) => setFiscalYear(Number(e.target.value))}
-          className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 leading-relaxed"
+          className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-base leading-relaxed"
         />
       </div>
 
@@ -52,7 +52,7 @@ export function GrantForm({ onSubmit, onCancel }: Props) {
           value={grantDate}
           onChange={(e) => setGrantDate(e.target.value)}
           required
-          className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 leading-relaxed"
+          className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-base leading-relaxed"
         />
       </div>
 
@@ -65,7 +65,7 @@ export function GrantForm({ onSubmit, onCancel }: Props) {
           max={40}
           value={totalDays}
           onChange={(e) => setTotalDays(Number(e.target.value))}
-          className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 leading-relaxed"
+          className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-base leading-relaxed"
         />
       </div>
 

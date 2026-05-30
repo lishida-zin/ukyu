@@ -7,6 +7,7 @@ interface Props {
   usages: Usage[]
   onDateClick: (date: string) => void
   initialMonth?: { year: number; month: number }
+  refreshGrantIds?: Set<number>
 }
 
 const WEEKDAYS = [
@@ -41,7 +42,7 @@ function formatDate(y: number, m: number, d: number): string {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
-export function Calendar({ usages, onDateClick, initialMonth }: Props) {
+export function Calendar({ usages, onDateClick, initialMonth, refreshGrantIds }: Props) {
   const now = new Date()
   const [currentMonth, setCurrentMonth] = useState(
     initialMonth ?? { year: now.getFullYear(), month: now.getMonth() }
@@ -145,7 +146,12 @@ export function Calendar({ usages, onDateClick, initialMonth }: Props) {
           else if (isOff) bgClass = 'bg-gray-50'
 
           const usageInfo = dayUsages
-            ? dayUsages.map((u) => `${TYPE_LABEL[u.type]}${STATUS_LABEL[u.status]}`).join(' ')
+            ? dayUsages
+              .map((u) => {
+                const kind = refreshGrantIds?.has(u.grantId) ? ' リフレッシュ' : ''
+                return `${TYPE_LABEL[u.type]}${STATUS_LABEL[u.status]}${kind}`
+              })
+              .join(' ')
             : ''
           const ariaLabel = `${month + 1}月${day}日${holidayName ? ` ${holidayName}` : ''}${usageInfo ? ` ${usageInfo}` : ''}`
 
@@ -163,14 +169,24 @@ export function Calendar({ usages, onDateClick, initialMonth }: Props) {
                   {holidayName}
                 </span>
               )}
-              {dayUsages && dayUsages.map((u) => (
+              {dayUsages && dayUsages.map((u) => {
+                const isRefresh = refreshGrantIds?.has(u.grantId) ?? false
+                return (
                 <span
                   key={u.id}
-                  className={`rounded px-1 text-sm font-bold leading-tight ${STATUS_STYLE[u.status]}`}
+                  className={`inline-flex items-center gap-0.5 rounded px-1 text-sm font-bold leading-tight ${STATUS_STYLE[u.status]} ${
+                    isRefresh ? 'border-2 border-mint-dark ring-1 ring-mint-dark/40' : ''
+                  }`}
                 >
-                  {TYPE_LABEL[u.type]}{STATUS_LABEL[u.status]}
+                  <span>{TYPE_LABEL[u.type]}{STATUS_LABEL[u.status]}</span>
+                  {isRefresh && (
+                    <span className="rounded border border-mint-dark bg-mint-light px-0.5 text-[10px] leading-tight text-mint-dark">
+                      リ
+                    </span>
+                  )}
                 </span>
-              ))}
+                )
+              })}
             </button>
           )
         })}

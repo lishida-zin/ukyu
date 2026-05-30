@@ -5,6 +5,7 @@ import { Modal } from '../components/Modal';
 import { GrantForm } from '../components/GrantForm';
 import { GrantRuleSettings } from '../components/GrantRuleSettings';
 import { ProfileSettings } from '../components/ProfileSettings';
+import { RefreshLeaveSettings } from '../components/RefreshLeaveSettings';
 import { useGrants } from '../hooks/useGrants';
 import { useUsages } from '../hooks/useUsages';
 import { useSettings } from '../hooks/useSettings';
@@ -241,7 +242,13 @@ export function SettingsPage() {
         </Card>
       </Collapsible>
 
-      {/* 4. つうち */}
+      <Collapsible title="🌿 リフレッシュ休暇" defaultOpen={false} color="mint">
+        <Card>
+          <RefreshLeaveSettings />
+        </Card>
+      </Collapsible>
+
+      {/* 5. つうち */}
       <Collapsible title="🔔 つうち" defaultOpen={false}>
         <Card>
           <button
@@ -262,7 +269,7 @@ export function SettingsPage() {
         </Card>
       </Collapsible>
 
-      {/* 5. データのかんり */}
+      {/* 6. データのかんり */}
       <Collapsible title="💾 データのかんり" defaultOpen={false}>
         <Card>
           <div className="flex gap-3">

@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react'
 import { useUsages } from '../hooks/useUsages'
 import { useGrants } from '../hooks/useGrants'
 import { useLeaveBalance } from '../hooks/useLeaveBalance'
+import { useRefreshBalance } from '../hooks/useRefreshBalance'
+import { useRefreshRule } from '../hooks/useRefreshRule'
 import { Calendar } from '../components/Calendar'
 import { CalendarSummary } from '../components/CalendarSummary'
+import { RefreshSummary } from '../components/RefreshSummary'
 import { SimulationCard } from '../components/SimulationCard'
 import { Collapsible } from '../components/Collapsible'
 import { Card } from '../components/Card'
@@ -76,7 +79,24 @@ function OverdueAlert({ overdueUsages, onDateClick }: { overdueUsages: Usage[]; 
   )
 }
 
-function PlannedList({ usages, onDateClick }: { usages: Usage[]; onDateClick: (date: string) => void }) {
+function RefreshKindMarker({ isRefresh }: { isRefresh: boolean }) {
+  if (!isRefresh) return null
+  return (
+    <span className="rounded-full border border-mint-dark bg-mint-light px-2 py-0.5 text-xs font-bold leading-relaxed text-mint-dark">
+      リ
+    </span>
+  )
+}
+
+function PlannedList({
+  usages,
+  refreshGrantIds,
+  onDateClick,
+}: {
+  usages: Usage[]
+  refreshGrantIds: Set<number>
+  onDateClick: (date: string) => void
+}) {
   const today = new Date().toISOString().slice(0, 10)
   const planned = usages
     .filter((u) => u.status === 'planned' && u.date >= today)
@@ -97,12 +117,15 @@ function PlannedList({ usages, onDateClick }: { usages: Usage[]; onDateClick: (d
         const weekday = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()]
         const isSunday = d.getDay() === 0
         const isSaturday = d.getDay() === 6
+        const isRefresh = refreshGrantIds.has(u.grantId)
         return (
           <button
             key={u.id}
             type="button"
             onClick={() => onDateClick(u.date)}
-            className="flex w-full items-center gap-3 rounded-2xl border-l-4 border-lavender bg-lavender-light/40 px-4 py-3 text-left hover:bg-lavender-light/60 transition-colors"
+            className={`flex w-full items-center gap-3 rounded-2xl border-l-4 border-lavender bg-lavender-light/40 px-4 py-3 text-left hover:bg-lavender-light/60 transition-colors ${
+              isRefresh ? 'ring-2 ring-mint-dark/40' : ''
+            }`}
           >
             <span className={`text-lg font-bold ${isSunday ? 'text-red-500' : isSaturday ? 'text-blue-500' : 'text-text'}`}>
               {u.date.slice(5).replace('-', '/')}
@@ -111,6 +134,7 @@ function PlannedList({ usages, onDateClick }: { usages: Usage[]; onDateClick: (d
             <span className="rounded-full px-2 py-0.5 text-sm font-medium bg-lavender-light text-lavender-dark border border-lavender">
               {TYPE_LABEL[u.type]}
             </span>
+            <RefreshKindMarker isRefresh={isRefresh} />
             {u.memo && (
               <span className="ml-auto text-sm text-text-sub truncate max-w-[8rem]">
                 {u.memo}
@@ -123,7 +147,15 @@ function PlannedList({ usages, onDateClick }: { usages: Usage[]; onDateClick: (d
   )
 }
 
-function UsageHistory({ usages, onDateClick }: { usages: Usage[]; onDateClick: (date: string) => void }) {
+function UsageHistory({
+  usages,
+  refreshGrantIds,
+  onDateClick,
+}: {
+  usages: Usage[]
+  refreshGrantIds: Set<number>
+  onDateClick: (date: string) => void
+}) {
   const used = usages.filter((u) => u.status !== 'planned')
   const sorted = [...used].sort((a, b) => b.date.localeCompare(a.date))
   if (sorted.length === 0) {
@@ -141,12 +173,15 @@ function UsageHistory({ usages, onDateClick }: { usages: Usage[]; onDateClick: (
         const weekday = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()]
         const isSunday = d.getDay() === 0
         const isSaturday = d.getDay() === 6
+        const isRefresh = refreshGrantIds.has(u.grantId)
         return (
           <button
             key={u.id}
             type="button"
             onClick={() => onDateClick(u.date)}
-            className="flex w-full items-center gap-3 rounded-2xl border-l-4 border-peach bg-peach-light/40 px-4 py-3 text-left hover:bg-peach-light/60 transition-colors"
+            className={`flex w-full items-center gap-3 rounded-2xl border-l-4 border-peach bg-peach-light/40 px-4 py-3 text-left hover:bg-peach-light/60 transition-colors ${
+              isRefresh ? 'ring-2 ring-mint-dark/40' : ''
+            }`}
           >
             <span className={`text-lg font-bold ${isSunday ? 'text-red-500' : isSaturday ? 'text-blue-500' : 'text-text'}`}>
               {u.date.slice(5).replace('-', '/')}
@@ -155,6 +190,7 @@ function UsageHistory({ usages, onDateClick }: { usages: Usage[]; onDateClick: (
             <span className="rounded-full px-2 py-0.5 text-sm font-medium bg-peach-light text-peach-dark border border-peach">
               {TYPE_LABEL[u.type]}
             </span>
+            <RefreshKindMarker isRefresh={isRefresh} />
             {u.memo && (
               <span className="ml-auto text-sm text-text-sub truncate max-w-[8rem]">
                 {u.memo}
@@ -189,11 +225,18 @@ export function CalendarPage({ initialDate, onInitialDateConsumed }: CalendarPag
   const { usages, addUsage, updateUsage, deleteUsage } = useUsages()
   const { grants } = useGrants()
   const { balances, totalRemaining, cycleUsed, cyclePlanned, cycleExpiringDays, cycle } = useLeaveBalance()
+  const refreshSummary = useRefreshBalance()
+  const { rule: refreshRule } = useRefreshRule()
 
   const today = new Date().toISOString().slice(0, 10)
   const activeGrants = (grants ?? [])
     .filter((g) => g.leaveKind === 'paid' && g.expiryDate >= today)
     .sort((a, b) => a.expiryDate.localeCompare(b.expiryDate))
+  const refreshGrantIds = new Set(
+    (grants ?? []).flatMap((g) =>
+      g.leaveKind === 'refresh' && g.id !== undefined ? [g.id] : [],
+    ),
+  )
 
   const existingUsage = selectedDate
     ? usages?.find((u) => u.date === selectedDate)
@@ -257,6 +300,10 @@ export function CalendarPage({ initialDate, onInitialDateConsumed }: CalendarPag
         />
       )}
 
+      {refreshRule?.enabled && (
+        <RefreshSummary summary={refreshSummary} />
+      )}
+
       {/* 過期アラート（共通） */}
       <OverdueAlert overdueUsages={overdueUsages} onDateClick={handleOverdueDateClick} />
 
@@ -267,6 +314,7 @@ export function CalendarPage({ initialDate, onInitialDateConsumed }: CalendarPag
       {viewMode === 'cal' ? (
         <Calendar
           usages={usages}
+          refreshGrantIds={refreshGrantIds}
           onDateClick={handleDateClick}
           initialMonth={initialDate ? {
             year: parseInt(initialDate.slice(0, 4)),
@@ -277,12 +325,20 @@ export function CalendarPage({ initialDate, onInitialDateConsumed }: CalendarPag
         <>
           {/* 予定 */}
           <Collapsible title={`つぎのよてい（${cyclePlanned}日）`} defaultOpen={true} color="lavender">
-            <PlannedList usages={cycleUsages} onDateClick={handleDateClick} />
+            <PlannedList
+              usages={cycleUsages}
+              refreshGrantIds={refreshGrantIds}
+              onDateClick={handleDateClick}
+            />
           </Collapsible>
 
           {/* 履歴 */}
           <Collapsible title={`つかったりれき（${cycleUsed}日）`} defaultOpen={true} color="peach">
-            <UsageHistory usages={cycleUsages} onDateClick={handleDateClick} />
+            <UsageHistory
+              usages={cycleUsages}
+              refreshGrantIds={refreshGrantIds}
+              onDateClick={handleDateClick}
+            />
           </Collapsible>
         </>
       )}

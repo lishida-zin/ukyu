@@ -68,4 +68,22 @@ describe('Calendar', () => {
     expect(screen.getByText('全予')).toBeInTheDocument()
     expect(screen.getByText('午前済')).toBeInTheDocument()
   })
+
+  it('shows リ marker for usage linked to refresh grant', () => {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = String(now.getMonth() + 1).padStart(2, '0')
+    const usages: Usage[] = [
+      { id: 1, profileId: 1, date: `${y}-${m}-10`, type: 'full', status: 'planned', grantId: 9, memo: '' },
+    ]
+    render(
+      <Calendar
+        usages={usages}
+        onDateClick={vi.fn()}
+        refreshGrantIds={new Set([9])}
+      />,
+    )
+    expect(screen.getByText('全予')).toBeInTheDocument()
+    expect(screen.getByText('リ')).toBeInTheDocument()
+  })
 })
