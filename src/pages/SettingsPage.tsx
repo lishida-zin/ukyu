@@ -4,11 +4,11 @@ import { Collapsible } from '../components/Collapsible';
 import { Modal } from '../components/Modal';
 import { GrantForm } from '../components/GrantForm';
 import { GrantRuleSettings } from '../components/GrantRuleSettings';
+import { ProfileSettings } from '../components/ProfileSettings';
 import { useGrants } from '../hooks/useGrants';
 import { useUsages } from '../hooks/useUsages';
 import { useSettings } from '../hooks/useSettings';
 import { useGrantRules } from '../hooks/useGrantRules';
-import { useProfiles } from '../hooks/useProfiles';
 import { useActiveProfile } from '../contexts/ActiveProfileContext';
 import { getDefaultGrantRules } from '../logic/grant-rules';
 import { requestNotificationPermission } from '../logic/notifications';
@@ -21,7 +21,6 @@ export function SettingsPage() {
   const { usages } = useUsages();
   const { settings, updateSettings } = useSettings();
   const { rules } = useGrantRules();
-  const { updateProfile } = useProfiles();
   const activeProfile = useActiveProfile();
 
   const [showGrantForm, setShowGrantForm] = useState(false);
@@ -32,7 +31,7 @@ export function SettingsPage() {
 
   async function handleAutoGrant() {
     if (!activeProfile?.hireDate) {
-      alert('さきに「きほん設定」でにゅうしゃ日を入力してね');
+      alert('さきに「プロフィール」でにゅうしゃ日を入力してね');
       return;
     }
     const activeRules = rules && rules.length > 0 ? rules : getDefaultGrantRules();
@@ -139,6 +138,12 @@ export function SettingsPage() {
     <div className="space-y-4 pb-24">
       <h1 className="text-xl font-bold leading-relaxed">せってい</h1>
 
+      <Collapsible title="👥 プロフィール" defaultOpen={true}>
+        <Card>
+          <ProfileSettings />
+        </Card>
+      </Collapsible>
+
       {/* 1. 有給のふよ */}
       <Collapsible title="🎁 有給のふよ" defaultOpen={true}>
         <Card>
@@ -208,26 +213,6 @@ export function SettingsPage() {
         <Card>
           <div className="space-y-4">
             <div>
-              <label htmlFor="hire-date-settings" className="block text-sm font-bold leading-relaxed">
-                にゅうしゃ日
-              </label>
-              <input
-                id="hire-date-settings"
-                type="date"
-                value={activeProfile?.hireDate ?? ''}
-                onChange={(e) => {
-                  if (activeProfile?.id) {
-                    void updateProfile(activeProfile.id, { hireDate: e.target.value });
-                  }
-                }}
-                className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 leading-relaxed"
-              />
-              <p className="mt-1 text-xs text-text-sub leading-relaxed">
-                じどうふよのけいさんに使うよ
-              </p>
-            </div>
-
-            <div>
               <label htmlFor="fiscal-year-start" className="block text-sm font-bold leading-relaxed">
                 ねんどのはじまり
               </label>
@@ -239,7 +224,7 @@ export function SettingsPage() {
                 onChange={(e) =>
                   updateSettings({ fiscalYearStart: e.target.value })
                 }
-                className="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 leading-relaxed"
+                className="mt-1 w-full rounded-xl border border-surface px-3 py-2 text-base leading-relaxed"
               />
               <p className="mt-1 text-xs text-text-sub leading-relaxed">
                 れい: 04-01（4がつ1にち）

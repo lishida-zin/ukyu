@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { BottomNav, type TabId } from './components/BottomNav'
 import { CalendarPage } from './pages/CalendarPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { ProfileSwitcher } from './components/ProfileSwitcher'
 import { useGrants } from './hooks/useGrants'
 import { useGrantRules } from './hooks/useGrantRules'
 import { useActiveProfile, useActiveProfileId } from './contexts/ActiveProfileContext'
@@ -44,10 +45,15 @@ export default function App() {
     <div className="min-h-screen bg-bg text-text font-sans leading-relaxed">
       <main className="pb-20 px-4 pt-4">
         {activeTab === 'calendar' && (
-          <CalendarPage
-            initialDate={calendarTarget}
-            onInitialDateConsumed={() => setCalendarTarget(null)}
-          />
+          <>
+            <ProfileSwitcher onAddProfileClick={() => setActiveTab('settings')} />
+            <div className="mt-3">
+              <CalendarPage
+                initialDate={calendarTarget}
+                onInitialDateConsumed={() => setCalendarTarget(null)}
+              />
+            </div>
+          </>
         )}
         {activeTab === 'settings' && <SettingsPage />}
       </main>
