@@ -5,6 +5,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { ProfileSwitcher } from './components/ProfileSwitcher'
 import { useGrants } from './hooks/useGrants'
 import { useGrantRules } from './hooks/useGrantRules'
+import { useRefreshRule } from './hooks/useRefreshRule'
 import { useActiveProfile, useActiveProfileId } from './contexts/ActiveProfileContext'
 import { checkExpiringGrants, showExpiryNotification } from './logic/notifications'
 import { generateAutoGrants } from './logic/auto-grant'
@@ -15,9 +16,11 @@ export default function App() {
   const [calendarTarget, setCalendarTarget] = useState<string | null>(null)
   const { grants, addGrant } = useGrants()
   const { rules } = useGrantRules()
+  const { syncRefreshGrants } = useRefreshRule()
   const activeProfile = useActiveProfile()
   const activeProfileId = useActiveProfileId()
   const autoGrantRan = useRef<number | undefined>(undefined)
+  const refreshSyncRan = useRef<number | undefined>(undefined)
 
   // Expiry notifications
   useEffect(() => {
@@ -40,6 +43,14 @@ export default function App() {
       Promise.all(newGrants.map((g) => addGrant(g)))
     }
   }, [activeProfileId, activeProfile, grants, rules, addGrant])
+
+  useEffect(() => {
+    if (activeProfileId === undefined) return
+    if (refreshSyncRan.current === activeProfileId) return
+
+    refreshSyncRan.current = activeProfileId
+    void syncRefreshGrants()
+  }, [activeProfileId, syncRefreshGrants])
 
   return (
     <div className="min-h-screen bg-bg text-text font-sans leading-relaxed">

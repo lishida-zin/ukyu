@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { exportToJson, parseImportData } from '../export-import';
+import { exportToJson, normalizeImportDataForV2, parseImportData } from '../export-import';
 import type { ExportData } from '../export-import';
 
 const validData: ExportData = {
@@ -42,6 +42,31 @@ const validDataWithRules: ExportData = {
   ],
 };
 
+const validDataWithProfilesAndRefreshRules: ExportData = {
+  ...validDataWithRules,
+  profiles: [
+    {
+      id: 1,
+      name: 'わたし',
+      color: '#C4B5FD',
+      hireDate: '2022-06-01',
+      order: 0,
+      createdAt: '2026-05-31T00:00:00.000Z',
+    },
+  ],
+  refreshRules: [
+    {
+      id: 1,
+      profileId: 1,
+      startDate: '2025-04-01',
+      intervalValue: 5,
+      intervalUnit: 'year',
+      grantDays: 5,
+      enabled: true,
+    },
+  ],
+};
+
 describe('exportToJson', () => {
   it('should return valid JSON string', () => {
     const result = exportToJson(validData);
@@ -62,6 +87,15 @@ describe('exportToJson', () => {
     expect(parsed.grantRules).toHaveLength(2);
     expect(parsed.grantRules[0].yearsOfService).toBe(0.5);
     expect(parsed.grantRules[1].grantDays).toBe(11);
+  });
+
+  it('should include profiles and refreshRules when provided', () => {
+    const result = exportToJson(validDataWithProfilesAndRefreshRules);
+    const parsed = JSON.parse(result);
+    expect(parsed.profiles).toHaveLength(1);
+    expect(parsed.profiles[0].name).toBe('わたし');
+    expect(parsed.refreshRules).toHaveLength(1);
+    expect(parsed.refreshRules[0].grantDays).toBe(5);
   });
 
   it('should not include grantRules when not provided', () => {
@@ -85,6 +119,13 @@ describe('parseImportData', () => {
     const result = parseImportData(json);
     expect(result.grantRules).toHaveLength(2);
     expect(result.grantRules![0].yearsOfService).toBe(0.5);
+  });
+
+  it('should parse v2 data with profiles and refreshRules', () => {
+    const json = JSON.stringify(validDataWithProfilesAndRefreshRules);
+    const result = parseImportData(json);
+    expect(result.profiles).toHaveLength(1);
+    expect(result.refreshRules).toHaveLength(1);
   });
 
   it('should accept data without grantRules (backward compatible)', () => {
@@ -202,6 +243,20 @@ describe('parseImportData', () => {
     );
   });
 
+  it('should throw when profiles is not an array', () => {
+    const data = { ...validData, profiles: 'not-array' };
+    expect(() => parseImportData(JSON.stringify(data))).toThrow(
+      'profiles が配列ではありません',
+    );
+  });
+
+  it('should throw when refreshRules is not an array', () => {
+    const data = { ...validData, refreshRules: 'not-array' };
+    expect(() => parseImportData(JSON.stringify(data))).toThrow(
+      'refreshRules が配列ではありません',
+    );
+  });
+
   it('should validate second element in grants array', () => {
     const data = {
       ...validData,
@@ -213,5 +268,64 @@ describe('parseImportData', () => {
     expect(() => parseImportData(JSON.stringify(data))).toThrow(
       'grants[1] に必須フィールド「totalDays」がありません',
     );
+  });
+});
+
+describe('normalizeImportDataForV2', () => {
+  it('should keep v2 data unchanged for table replacement', () => {
+    const result = normalizeImportDataForV2(
+      validDataWithProfilesAndRefreshRules,
+      '2026-05-31T00:00:00.000Z',
+    );
+
+    expect(result.profiles).toEqual(validDataWithProfilesAndRefreshRules.profiles);
+    expect(result.refreshRules).toEqual(validDataWithProfilesAndRefreshRules.refreshRules);
+    expect(result.grants[0].profileId).toBe(1);
+    expect(result.grants[0].leaveKind).toBe('paid');
+  });
+
+  it('should convert v1 backup data to the default profile', () => {
+    const v1Data = {
+      grants: [
+        {
+          id: 1,
+          fiscalYear: 2025,
+          grantDate: '2025-04-01',
+          expiryDate: '2027-03-31',
+          totalDays: 20,
+          source: 'new',
+        },
+      ],
+      usages: [
+        {
+          id: 1,
+          date: '2025-05-01',
+          type: 'full',
+          status: 'used',
+          grantId: 1,
+          memo: 'テスト',
+        },
+      ],
+      settings: {
+        id: 1,
+        fiscalYearStart: '04-01',
+        defaultGrantDate: '04-01',
+        hireDate: '2022-06-01',
+      },
+      grantRules: [{ id: 1, yearsOfService: 0.5, grantDays: 10 }],
+    } as unknown as ExportData;
+
+    const result = normalizeImportDataForV2(v1Data, '2026-05-31T00:00:00.000Z');
+
+    expect(result.profiles).toHaveLength(1);
+    expect(result.profiles[0].id).toBe(1);
+    expect(result.profiles[0].hireDate).toBe('2022-06-01');
+    expect(result.grants[0].profileId).toBe(1);
+    expect(result.grants[0].leaveKind).toBe('paid');
+    expect(result.usages[0].profileId).toBe(1);
+    expect(result.settings.profileId).toBe(1);
+    expect((result.settings as unknown as Record<string, unknown>).hireDate).toBeUndefined();
+    expect(result.grantRules![0].profileId).toBe(1);
+    expect(result.refreshRules).toEqual([]);
   });
 });

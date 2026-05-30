@@ -7,19 +7,17 @@ import { GrantRuleSettings } from '../components/GrantRuleSettings';
 import { ProfileSettings } from '../components/ProfileSettings';
 import { RefreshLeaveSettings } from '../components/RefreshLeaveSettings';
 import { useGrants } from '../hooks/useGrants';
-import { useUsages } from '../hooks/useUsages';
 import { useSettings } from '../hooks/useSettings';
 import { useGrantRules } from '../hooks/useGrantRules';
 import { useActiveProfile } from '../contexts/ActiveProfileContext';
 import { getDefaultGrantRules } from '../logic/grant-rules';
 import { requestNotificationPermission } from '../logic/notifications';
-import { exportToJson, parseImportData } from '../logic/export-import';
+import { exportToJson, normalizeImportDataForV2, parseImportData } from '../logic/export-import';
 import { generateAutoGrants } from '../logic/auto-grant';
 import { db } from '../db';
 
 export function SettingsPage() {
   const { grants, addGrant, deleteGrant } = useGrants();
-  const { usages } = useUsages();
   const { settings, updateSettings } = useSettings();
   const { rules } = useGrantRules();
   const activeProfile = useActiveProfile();
@@ -73,16 +71,34 @@ export function SettingsPage() {
     }
   }
 
-  function handleExport() {
-    if (!grants || !usages || !settings) return;
-    const json = exportToJson({ grants, usages, settings, grantRules: rules ?? [] });
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ukyu-backup-${today}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  async function handleExport() {
+    if (!settings) return;
+    try {
+      const [allGrants, allUsages, allGrantRules, profiles, refreshRules] = await Promise.all([
+        db.grants.toArray(),
+        db.usages.toArray(),
+        db.grantRules.toArray(),
+        db.profiles.toArray(),
+        db.refreshRules.toArray(),
+      ]);
+      const json = exportToJson({
+        grants: allGrants,
+        usages: allUsages,
+        settings,
+        grantRules: allGrantRules,
+        profiles,
+        refreshRules,
+      });
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ukyu-backup-${today}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('エクスポートに失敗しました');
+    }
   }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -98,27 +114,36 @@ export function SettingsPage() {
       );
       if (!confirmed) return;
 
-      await db.grants.clear();
-      await db.usages.clear();
+      const normalized = normalizeImportDataForV2(data, new Date().toISOString());
+      await db.transaction(
+        'rw',
+        [db.profiles, db.refreshRules, db.grants, db.usages, db.settings, db.grantRules],
+        async () => {
+          await db.profiles.clear();
+          await db.refreshRules.clear();
+          await db.grants.clear();
+          await db.usages.clear();
+          await db.settings.clear();
+          await db.grantRules.clear();
 
-      if (data.grants.length > 0) {
-        await db.grants.bulkAdd(data.grants);
-      }
-      if (data.usages.length > 0) {
-        await db.usages.bulkAdd(data.usages);
-      }
-      if (data.settings) {
-        const existing = await db.settings.toCollection().first();
-        if (existing?.id !== undefined) {
-          await db.settings.update(existing.id, data.settings);
-        } else {
-          await db.settings.add(data.settings);
+          if (normalized.profiles.length > 0) {
+            await db.profiles.bulkAdd(normalized.profiles);
+          }
+          if (normalized.refreshRules.length > 0) {
+            await db.refreshRules.bulkAdd(normalized.refreshRules);
+          }
+          if (normalized.grants.length > 0) {
+            await db.grants.bulkAdd(normalized.grants);
+          }
+          if (normalized.usages.length > 0) {
+            await db.usages.bulkAdd(normalized.usages);
+          }
+          await db.settings.add(normalized.settings);
+          if (normalized.grantRules.length > 0) {
+            await db.grantRules.bulkAdd(normalized.grantRules);
+          }
         }
-      }
-      if (data.grantRules && data.grantRules.length > 0) {
-        await db.grantRules.clear();
-        await db.grantRules.bulkAdd(data.grantRules);
-      }
+      );
 
       alert('データをよみこみました');
     } catch (err) {

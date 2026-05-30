@@ -1,10 +1,22 @@
-import type { Grant, Usage, Settings, GrantRule } from '../db/types';
+import type { Grant, Usage, Settings, GrantRule, Profile, RefreshRule } from '../db/types';
+import { buildDefaultProfile } from './migration';
 
 export interface ExportData {
   grants: Grant[];
   usages: Usage[];
   settings: Settings;
   grantRules?: GrantRule[];
+  profiles?: Profile[];
+  refreshRules?: RefreshRule[];
+}
+
+export interface NormalizedImportData {
+  grants: Grant[];
+  usages: Usage[];
+  settings: Settings;
+  grantRules: GrantRule[];
+  profiles: Profile[];
+  refreshRules: RefreshRule[];
 }
 
 export function exportToJson(data: ExportData): string {
@@ -71,6 +83,64 @@ export function parseImportData(json: string): ExportData {
       throw new Error('grantRules が配列ではありません');
     }
   }
+  if ('profiles' in data) {
+    if (!Array.isArray(data.profiles)) {
+      throw new Error('profiles が配列ではありません');
+    }
+  }
+  if ('refreshRules' in data) {
+    if (!Array.isArray(data.refreshRules)) {
+      throw new Error('refreshRules が配列ではありません');
+    }
+  }
 
   return data;
+}
+
+export function normalizeImportDataForV2(
+  data: ExportData,
+  now: string,
+): NormalizedImportData {
+  if (data.profiles) {
+    return {
+      grants: data.grants,
+      usages: data.usages,
+      settings: data.settings,
+      grantRules: data.grantRules ?? [],
+      profiles: data.profiles,
+      refreshRules: data.refreshRules ?? [],
+    };
+  }
+
+  const profileId = 1;
+  const legacySettings = data.settings as Settings & { hireDate?: string };
+  const profile: Profile = {
+    id: profileId,
+    ...buildDefaultProfile(legacySettings.hireDate, now),
+  };
+  const settings: Settings = {
+    id: data.settings.id,
+    profileId,
+    fiscalYearStart: data.settings.fiscalYearStart,
+    defaultGrantDate: data.settings.defaultGrantDate,
+  };
+
+  return {
+    grants: data.grants.map((grant) => ({
+      ...grant,
+      profileId,
+      leaveKind: grant.leaveKind ?? 'paid',
+    })),
+    usages: data.usages.map((usage) => ({
+      ...usage,
+      profileId,
+    })),
+    settings,
+    grantRules: (data.grantRules ?? []).map((rule) => ({
+      ...rule,
+      profileId,
+    })),
+    profiles: [profile],
+    refreshRules: [],
+  };
 }
