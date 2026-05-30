@@ -20,3 +20,8 @@
   --font-sans: "UD Digi Kyokasho NK-R", "Noto Sans JP", sans-serif;
   --leading-relaxed: 1.8;
 }
+
+/* iPhone向けに rem 基準で全体を比例拡大（レイアウトは維持） */
+html {
+  font-size: 18px;
+}

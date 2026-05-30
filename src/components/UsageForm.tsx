@@ -59,7 +59,7 @@ export function UsageForm({ date, grants, existing, defaultStatus, onSubmit, onD
               type="button"
               onClick={() => setType(t.value)}
               aria-pressed={type === t.value}
-              className={`rounded-xl py-3 text-sm font-medium leading-relaxed transition-colors ${
+              className={`rounded-xl py-3 text-base font-medium leading-relaxed transition-colors ${
                 type === t.value
                   ? 'bg-lavender text-surface-bright'
                   : 'bg-lavender-light text-text'
@@ -81,7 +81,7 @@ export function UsageForm({ date, grants, existing, defaultStatus, onSubmit, onD
               type="button"
               onClick={() => setStatus(s.value)}
               aria-pressed={status === s.value}
-              className={`rounded-xl py-3 text-sm font-medium leading-relaxed transition-colors ${
+              className={`rounded-xl py-3 text-base font-medium leading-relaxed transition-colors ${
                 status === s.value
                   ? 'bg-mint text-surface-bright'
                   : 'bg-mint-light text-text'
@@ -102,7 +102,7 @@ export function UsageForm({ date, grants, existing, defaultStatus, onSubmit, onD
           onChange={(e) => setMemo(e.target.value)}
           placeholder="りゆうなど"
           aria-label="メモ"
-          className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm leading-relaxed focus:border-lavender focus:outline-none"
+          className="w-full rounded-xl border border-gray-200 px-4 py-3 text-base leading-relaxed focus:border-lavender focus:outline-none"
         />
       </div>
 
@@ -112,7 +112,7 @@ export function UsageForm({ date, grants, existing, defaultStatus, onSubmit, onD
           <button
             type="button"
             onClick={onDelete}
-            className="rounded-xl bg-peach-light px-4 py-3 text-sm font-medium text-peach-dark transition-colors hover:bg-peach"
+            className="rounded-xl bg-peach-light px-4 py-3 text-base font-medium text-peach-dark transition-colors hover:bg-peach"
           >
             けす
           </button>
@@ -120,7 +120,7 @@ export function UsageForm({ date, grants, existing, defaultStatus, onSubmit, onD
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 rounded-xl bg-gray-100 py-3 text-sm font-medium text-text-sub transition-colors hover:bg-gray-200"
+          className="flex-1 rounded-xl bg-gray-100 py-3 text-base font-medium text-text-sub transition-colors hover:bg-gray-200"
         >
           やめる
         </button>
@@ -128,7 +128,7 @@ export function UsageForm({ date, grants, existing, defaultStatus, onSubmit, onD
           type="button"
           onClick={handleSubmit}
           disabled={grantId === undefined}
-          className="flex-1 rounded-xl bg-lavender-dark py-3 text-sm font-medium text-surface-bright transition-colors hover:opacity-90 disabled:opacity-40"
+          className="flex-1 rounded-xl bg-lavender-dark py-3 text-base font-medium text-surface-bright transition-colors hover:opacity-90 disabled:opacity-40"
         >
           {existing ? 'こうしん' : 'とうろく'}
         </button>

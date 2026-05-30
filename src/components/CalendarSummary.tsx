@@ -70,15 +70,15 @@ function StatCard({
   return (
     <div className={`rounded-2xl border-2 px-4 py-3 ${styles[color]}`}>
       <div className="flex items-center gap-1.5 mb-1">
-        <span className="text-base">{icon}</span>
-        <span className="text-xs font-bold opacity-80">{label}</span>
+        <span className="text-lg">{icon}</span>
+        <span className="text-sm font-bold opacity-80">{label}</span>
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-2xl font-bold">{value}</span>
-        <span className="text-sm font-medium opacity-70">{unit}</span>
+        <span className="text-3xl font-bold">{value}</span>
+        <span className="text-base font-medium opacity-70">{unit}</span>
       </div>
       {sub && (
-        <p className="mt-0.5 text-[10px] opacity-60">{sub}</p>
+        <p className="mt-0.5 text-xs opacity-60">{sub}</p>
       )}
     </div>
   )

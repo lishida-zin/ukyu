@@ -13,15 +13,47 @@ import type { Usage } from '../db/types'
 
 const TYPE_LABEL = { full: 'ぜんじつ', am: 'ごぜん半休', pm: 'ごご半休' } as const
 
+type ViewMode = 'cal' | 'list'
+
+const VIEW_TABS = [
+  { value: 'cal', icon: '📅', label: 'カレンダー' },
+  { value: 'list', icon: '📋', label: 'リスト' },
+] as const
+
+function ViewToggle({ viewMode, onChange }: { viewMode: ViewMode; onChange: (mode: ViewMode) => void }) {
+  return (
+    <div role="tablist" className="flex gap-1.5 rounded-2xl bg-surface p-1.5">
+      {VIEW_TABS.map((t) => {
+        const selected = viewMode === t.value
+        return (
+          <button
+            key={t.value}
+            type="button"
+            role="tab"
+            aria-pressed={selected}
+            onClick={() => onChange(t.value)}
+            className={`flex min-h-[54px] flex-1 items-center justify-center gap-2 rounded-xl text-lg font-bold transition-colors ${
+              selected ? 'bg-surface-bright text-lavender-dark shadow-sm' : 'text-text-sub'
+            }`}
+          >
+            <span className="text-2xl">{t.icon}</span>
+            {t.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 function OverdueAlert({ overdueUsages, onDateClick }: { overdueUsages: Usage[]; onDateClick: (date: string) => void }) {
   if (overdueUsages.length === 0) return null
 
   return (
     <Card className="border-peach border-2 bg-peach-light">
-      <p className="text-sm font-bold text-peach-dark mb-2">
+      <p className="text-base font-bold text-peach-dark mb-2">
         かくにん してね
       </p>
-      <p className="text-xs text-text-sub mb-2 leading-relaxed">
+      <p className="text-sm text-text-sub mb-2 leading-relaxed">
         よていの日がすぎたけど、まだ「つかった」になっていないよ
       </p>
       <div className="space-y-1">
@@ -30,10 +62,10 @@ function OverdueAlert({ overdueUsages, onDateClick }: { overdueUsages: Usage[]; 
             key={u.id}
             type="button"
             onClick={() => onDateClick(u.date)}
-            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-peach-dark hover:bg-surface-bright/40 transition-colors"
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-peach-dark hover:bg-surface-bright/40 transition-colors"
           >
             <span>{u.date}</span>
-            <span className="rounded bg-surface-bright/60 px-1.5 py-0.5">
+            <span className="rounded bg-surface-bright/60 px-1.5 py-0.5 border border-peach">
               {TYPE_LABEL[u.type]}
             </span>
             <span className="ml-auto text-peach-dark/60">タップでひらく</span>
@@ -72,15 +104,15 @@ function PlannedList({ usages, onDateClick }: { usages: Usage[]; onDateClick: (d
             onClick={() => onDateClick(u.date)}
             className="flex w-full items-center gap-3 rounded-2xl border-l-4 border-lavender bg-lavender-light/40 px-4 py-3 text-left hover:bg-lavender-light/60 transition-colors"
           >
-            <span className={`text-sm font-bold ${isSunday ? 'text-red-400' : isSaturday ? 'text-blue-400' : 'text-text'}`}>
+            <span className={`text-lg font-bold ${isSunday ? 'text-red-500' : isSaturday ? 'text-blue-500' : 'text-text'}`}>
               {u.date.slice(5).replace('-', '/')}
-              <span className="ml-1 text-xs font-normal">({weekday})</span>
+              <span className="ml-1 text-sm font-normal">({weekday})</span>
             </span>
-            <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-lavender-light text-lavender-dark">
+            <span className="rounded-full px-2 py-0.5 text-sm font-medium bg-lavender-light text-lavender-dark border border-lavender">
               {TYPE_LABEL[u.type]}
             </span>
             {u.memo && (
-              <span className="ml-auto text-xs text-text-sub truncate max-w-[8rem]">
+              <span className="ml-auto text-sm text-text-sub truncate max-w-[8rem]">
                 {u.memo}
               </span>
             )}
@@ -116,15 +148,15 @@ function UsageHistory({ usages, onDateClick }: { usages: Usage[]; onDateClick: (
             onClick={() => onDateClick(u.date)}
             className="flex w-full items-center gap-3 rounded-2xl border-l-4 border-peach bg-peach-light/40 px-4 py-3 text-left hover:bg-peach-light/60 transition-colors"
           >
-            <span className={`text-sm font-bold ${isSunday ? 'text-red-400' : isSaturday ? 'text-blue-400' : 'text-text'}`}>
+            <span className={`text-lg font-bold ${isSunday ? 'text-red-500' : isSaturday ? 'text-blue-500' : 'text-text'}`}>
               {u.date.slice(5).replace('-', '/')}
-              <span className="ml-1 text-xs font-normal">({weekday})</span>
+              <span className="ml-1 text-sm font-normal">({weekday})</span>
             </span>
-            <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-peach-light text-peach-dark">
+            <span className="rounded-full px-2 py-0.5 text-sm font-medium bg-peach-light text-peach-dark border border-peach">
               {TYPE_LABEL[u.type]}
             </span>
             {u.memo && (
-              <span className="ml-auto text-xs text-text-sub truncate max-w-[8rem]">
+              <span className="ml-auto text-sm text-text-sub truncate max-w-[8rem]">
                 {u.memo}
               </span>
             )}
@@ -143,11 +175,13 @@ interface CalendarPageProps {
 export function CalendarPage({ initialDate, onInitialDateConsumed }: CalendarPageProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [isFromOverdue, setIsFromOverdue] = useState(false)
+  const [viewMode, setViewMode] = useState<ViewMode>('cal')
 
   useEffect(() => {
     if (initialDate) {
       setSelectedDate(initialDate)
       setIsFromOverdue(true)
+      setViewMode('cal')
       onInitialDateConsumed?.()
     }
   }, [initialDate, onInitialDateConsumed])
@@ -212,15 +246,7 @@ export function CalendarPage({ initialDate, onInitialDateConsumed }: CalendarPag
 
   return (
     <div className="space-y-4 pb-24">
-      <Calendar
-        usages={usages}
-        onDateClick={handleDateClick}
-        initialMonth={initialDate ? {
-          year: parseInt(initialDate.slice(0, 4)),
-          month: parseInt(initialDate.slice(5, 7)) - 1,
-        } : undefined}
-      />
-
+      {/* サマリー（共通） */}
       {balances && balances.length > 0 && (
         <CalendarSummary
           totalRemaining={totalRemaining}
@@ -231,20 +257,37 @@ export function CalendarPage({ initialDate, onInitialDateConsumed }: CalendarPag
         />
       )}
 
-      {/* 過期アラート */}
+      {/* 過期アラート（共通） */}
       <OverdueAlert overdueUsages={overdueUsages} onDateClick={handleOverdueDateClick} />
 
-      {/* 予定 */}
-      <Collapsible title={`つぎのよてい（${cyclePlanned}日）`} defaultOpen={true} color="lavender">
-        <PlannedList usages={cycleUsages} onDateClick={handleDateClick} />
-      </Collapsible>
+      {/* カレンダー / リスト 切替トグル */}
+      <ViewToggle viewMode={viewMode} onChange={setViewMode} />
 
-      {/* 履歴 */}
-      <Collapsible title={`つかったりれき（${cycleUsed}日）`} defaultOpen={true} color="peach">
-        <UsageHistory usages={cycleUsages} onDateClick={handleDateClick} />
-      </Collapsible>
+      {/* 本体：カレンダー or リスト（排他） */}
+      {viewMode === 'cal' ? (
+        <Calendar
+          usages={usages}
+          onDateClick={handleDateClick}
+          initialMonth={initialDate ? {
+            year: parseInt(initialDate.slice(0, 4)),
+            month: parseInt(initialDate.slice(5, 7)) - 1,
+          } : undefined}
+        />
+      ) : (
+        <>
+          {/* 予定 */}
+          <Collapsible title={`つぎのよてい（${cyclePlanned}日）`} defaultOpen={true} color="lavender">
+            <PlannedList usages={cycleUsages} onDateClick={handleDateClick} />
+          </Collapsible>
 
-      {/* シミュレーション */}
+          {/* 履歴 */}
+          <Collapsible title={`つかったりれき（${cycleUsed}日）`} defaultOpen={true} color="peach">
+            <UsageHistory usages={cycleUsages} onDateClick={handleDateClick} />
+          </Collapsible>
+        </>
+      )}
+
+      {/* シミュレーション（共通・下部） */}
       <Collapsible title="シミュレーション" defaultOpen={false} color="mint">
         <SimulationCard remainingDays={totalRemaining} />
       </Collapsible>

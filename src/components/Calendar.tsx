@@ -10,13 +10,13 @@ interface Props {
 }
 
 const WEEKDAYS = [
-  { label: '日', className: 'text-red-400' },
+  { label: '日', className: 'text-red-500' },
   { label: '月', className: 'text-text-sub' },
   { label: '火', className: 'text-text-sub' },
   { label: '水', className: 'text-text-sub' },
   { label: '木', className: 'text-text-sub' },
   { label: '金', className: 'text-text-sub' },
-  { label: '土', className: 'text-blue-400' },
+  { label: '土', className: 'text-blue-500' },
 ]
 
 const TYPE_LABEL: Record<UsageType, string> = {
@@ -26,9 +26,9 @@ const TYPE_LABEL: Record<UsageType, string> = {
 }
 
 const STATUS_STYLE: Record<UsageStatus, string> = {
-  planned: 'bg-lavender-light text-lavender-dark',
-  confirmed: 'bg-peach-light text-peach-dark',
-  used: 'bg-peach-light text-peach-dark',
+  planned: 'bg-lavender-light text-lavender-dark border border-lavender',
+  confirmed: 'bg-peach-light text-peach-dark border border-peach',
+  used: 'bg-peach-light text-peach-dark border border-peach',
 }
 
 const STATUS_LABEL: Record<UsageStatus, string> = {
@@ -95,7 +95,7 @@ export function Calendar({ usages, onDateClick, initialMonth }: Props) {
         >
           ←
         </button>
-        <h2 className="text-lg font-bold leading-relaxed">
+        <h2 className="text-xl font-bold leading-relaxed">
           {year}年 {month + 1}月
         </h2>
         <button
@@ -109,7 +109,7 @@ export function Calendar({ usages, onDateClick, initialMonth }: Props) {
       </div>
 
       {/* Weekday headers */}
-      <div className="mb-1 grid grid-cols-7 text-center text-base font-bold">
+      <div className="mb-1 grid grid-cols-7 text-center text-lg font-bold">
         {WEEKDAYS.map((w) => (
           <div key={w.label} className={`py-1 ${w.className}`}>{w.label}</div>
         ))}
@@ -122,7 +122,7 @@ export function Calendar({ usages, onDateClick, initialMonth }: Props) {
         onTouchEnd={swipeHandlers.onTouchEnd}
       >
         {cells.map((day, i) => {
-          if (day === null) return <div key={`empty-${i}`} className="min-h-[3.5rem]" />
+          if (day === null) return <div key={`empty-${i}`} className="min-h-[4.25rem]" />
 
           const dateStr = formatDate(year, month, day)
           const dayUsages = usageMap.get(dateStr)
@@ -136,8 +136,8 @@ export function Calendar({ usages, onDateClick, initialMonth }: Props) {
 
           // Day number color
           let dayColor = 'text-text'
-          if (isSunday || isHoliday) dayColor = 'text-red-400'
-          else if (isSaturday) dayColor = 'text-blue-400'
+          if (isSunday || isHoliday) dayColor = 'text-red-500'
+          else if (isSaturday) dayColor = 'text-blue-500'
 
           // Background
           let bgClass = ''
@@ -155,18 +155,18 @@ export function Calendar({ usages, onDateClick, initialMonth }: Props) {
               type="button"
               onClick={() => onDateClick(dateStr)}
               aria-label={ariaLabel}
-              className={`flex min-h-[3.5rem] flex-col items-center justify-start gap-0.5 rounded-xl py-1 text-base active:scale-95 transition-all hover:bg-lavender-light ${bgClass}`}
+              className={`flex min-h-[4.25rem] flex-col items-center justify-start gap-0.5 rounded-xl py-1 text-base active:scale-95 transition-all hover:bg-lavender-light ${bgClass}`}
             >
-              <span className={`leading-tight font-bold ${dayColor}`}>{day}</span>
+              <span className={`text-lg leading-tight font-bold ${dayColor}`}>{day}</span>
               {holidayName && !dayUsages && (
-                <span className="text-[9px] leading-tight text-red-300 truncate max-w-full px-0.5">
+                <span className="text-[11px] leading-tight text-red-300 truncate max-w-full px-0.5">
                   {holidayName}
                 </span>
               )}
               {dayUsages && dayUsages.map((u) => (
                 <span
                   key={u.id}
-                  className={`rounded px-1 text-xs font-bold leading-tight ${STATUS_STYLE[u.status]}`}
+                  className={`rounded px-1 text-sm font-bold leading-tight ${STATUS_STYLE[u.status]}`}
                 >
                   {TYPE_LABEL[u.type]}{STATUS_LABEL[u.status]}
                 </span>
