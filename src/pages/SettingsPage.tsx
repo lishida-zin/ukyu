@@ -103,17 +103,18 @@ export function SettingsPage({ initialOpenSection }: SettingsPageProps = {}) {
   async function handleExport() {
     if (!settings) return;
     try {
-      const [allGrants, allUsages, allGrantRules, profiles, refreshRules] = await Promise.all([
+      const [allGrants, allUsages, allGrantRules, profiles, refreshRules, allSettings] = await Promise.all([
         db.grants.toArray(),
         db.usages.toArray(),
         db.grantRules.toArray(),
         db.profiles.toArray(),
         db.refreshRules.toArray(),
+        db.settings.toArray(),
       ]);
       const json = exportToJson({
         grants: allGrants,
         usages: allUsages,
-        settings,
+        settings: allSettings, // 全プロフィールの settings をバックアップ
         grantRules: allGrantRules,
         profiles,
         refreshRules,
@@ -167,7 +168,9 @@ export function SettingsPage({ initialOpenSection }: SettingsPageProps = {}) {
           if (normalized.usages.length > 0) {
             await db.usages.bulkAdd(normalized.usages);
           }
-          await db.settings.add(normalized.settings);
+          if (normalized.settings.length > 0) {
+            await db.settings.bulkAdd(normalized.settings);
+          }
           if (normalized.grantRules.length > 0) {
             await db.grantRules.bulkAdd(normalized.grantRules);
           }

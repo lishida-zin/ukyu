@@ -111,7 +111,8 @@ describe('parseImportData', () => {
     const result = parseImportData(json);
     expect(result.grants).toHaveLength(1);
     expect(result.usages).toHaveLength(1);
-    expect(result.settings.profileId).toBe(1);
+    const settings = Array.isArray(result.settings) ? result.settings[0] : result.settings;
+    expect(settings.profileId).toBe(1);
   });
 
   it('should parse data with grantRules', () => {
@@ -284,6 +285,56 @@ describe('normalizeImportDataForV2', () => {
     expect(result.grants[0].leaveKind).toBe('paid');
   });
 
+  it('複数プロフィールの settings 配列を全件保持する', () => {
+    const multi = {
+      ...validDataWithProfilesAndRefreshRules,
+      profiles: [
+        { id: 1, name: 'わたし', color: '#C4B5FD', hireDate: '2022-06-01', order: 0, createdAt: '2026-05-31T00:00:00.000Z' },
+        { id: 2, name: 'ひろみ', color: '#FBCFE8', hireDate: '2019-04-01', order: 1, createdAt: '2026-05-31T00:00:00.000Z' },
+      ],
+      settings: [
+        { id: 1, profileId: 1, fiscalYearStart: '04-01', defaultGrantDate: '04-01' },
+        { id: 2, profileId: 2, fiscalYearStart: '01-01', defaultGrantDate: '01-01' },
+      ],
+    } satisfies ExportData;
+
+    const result = normalizeImportDataForV2(multi, '2026-05-31T00:00:00.000Z');
+    expect(Array.isArray(result.settings)).toBe(true);
+    expect(result.settings).toHaveLength(2);
+    expect(result.settings.map((s) => s.profileId).sort()).toEqual([1, 2]);
+  });
+
+  it('export→parse→normalize の往復で複数プロフィールの settings が全件保持される', () => {
+    const multi = {
+      ...validDataWithProfilesAndRefreshRules,
+      profiles: [
+        { id: 1, name: 'わたし', color: '#C4B5FD', hireDate: '2022-06-01', order: 0, createdAt: '2026-05-31T00:00:00.000Z' },
+        { id: 2, name: 'ひろみ', color: '#FBCFE8', hireDate: '2019-04-01', order: 1, createdAt: '2026-05-31T00:00:00.000Z' },
+      ],
+      settings: [
+        { id: 1, profileId: 1, fiscalYearStart: '04-01', defaultGrantDate: '04-01' },
+        { id: 2, profileId: 2, fiscalYearStart: '01-01', defaultGrantDate: '01-01' },
+      ],
+    } satisfies ExportData;
+
+    const result = normalizeImportDataForV2(
+      parseImportData(exportToJson(multi)),
+      '2026-05-31T00:00:00.000Z',
+    );
+    expect(result.settings).toHaveLength(2);
+    expect(result.settings.map((s) => s.profileId).sort()).toEqual([1, 2]);
+  });
+
+  it('旧v2(単一 settings オブジェクト)も settings を配列(1件)に正規化する', () => {
+    const result = normalizeImportDataForV2(
+      validDataWithProfilesAndRefreshRules,
+      '2026-05-31T00:00:00.000Z',
+    );
+    expect(Array.isArray(result.settings)).toBe(true);
+    expect(result.settings).toHaveLength(1);
+    expect(result.settings[0].profileId).toBe(1);
+  });
+
   it('should convert v1 backup data to the default profile', () => {
     const v1Data = {
       grants: [
@@ -323,8 +374,8 @@ describe('normalizeImportDataForV2', () => {
     expect(result.grants[0].profileId).toBe(1);
     expect(result.grants[0].leaveKind).toBe('paid');
     expect(result.usages[0].profileId).toBe(1);
-    expect(result.settings.profileId).toBe(1);
-    expect((result.settings as unknown as Record<string, unknown>).hireDate).toBeUndefined();
+    expect(result.settings[0].profileId).toBe(1);
+    expect((result.settings[0] as unknown as Record<string, unknown>).hireDate).toBeUndefined();
     expect(result.grantRules![0].profileId).toBe(1);
     expect(result.refreshRules).toEqual([]);
   });

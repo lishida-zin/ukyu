@@ -4,7 +4,8 @@ import { buildDefaultProfile } from './migration';
 export interface ExportData {
   grants: Grant[];
   usages: Usage[];
-  settings: Settings;
+  // v2 は全プロフィールの settings を配列で持つ。単一オブジェクトは旧バックアップ互換。
+  settings: Settings | Settings[];
   grantRules?: GrantRule[];
   profiles?: Profile[];
   refreshRules?: RefreshRule[];
@@ -13,7 +14,7 @@ export interface ExportData {
 export interface NormalizedImportData {
   grants: Grant[];
   usages: Usage[];
-  settings: Settings;
+  settings: Settings[];
   grantRules: GrantRule[];
   profiles: Profile[];
   refreshRules: RefreshRule[];
@@ -105,7 +106,8 @@ export function normalizeImportDataForV2(
     return {
       grants: data.grants,
       usages: data.usages,
-      settings: data.settings,
+      // 新形式は配列。旧v2(単一オブジェクト)は配列に正規化する。
+      settings: Array.isArray(data.settings) ? data.settings : [data.settings],
       grantRules: data.grantRules ?? [],
       profiles: data.profiles,
       refreshRules: data.refreshRules ?? [],
@@ -113,16 +115,18 @@ export function normalizeImportDataForV2(
   }
 
   const profileId = 1;
-  const legacySettings = data.settings as Settings & { hireDate?: string };
+  // v1 バックアップは単一 settings オブジェクト（hireDate を内包しうる）。
+  const legacySettings = (Array.isArray(data.settings) ? data.settings[0] : data.settings) as
+    (Settings & { hireDate?: string }) | undefined;
   const profile: Profile = {
     id: profileId,
-    ...buildDefaultProfile(legacySettings.hireDate, now),
+    ...buildDefaultProfile(legacySettings?.hireDate, now),
   };
   const settings: Settings = {
-    id: data.settings.id,
+    id: legacySettings?.id,
     profileId,
-    fiscalYearStart: data.settings.fiscalYearStart,
-    defaultGrantDate: data.settings.defaultGrantDate,
+    fiscalYearStart: legacySettings?.fiscalYearStart ?? '',
+    defaultGrantDate: legacySettings?.defaultGrantDate ?? '',
   };
 
   return {
@@ -135,7 +139,7 @@ export function normalizeImportDataForV2(
       ...usage,
       profileId,
     })),
-    settings,
+    settings: [settings],
     grantRules: (data.grantRules ?? []).map((rule) => ({
       ...rule,
       profileId,
