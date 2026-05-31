@@ -16,6 +16,31 @@ import { exportToJson, normalizeImportDataForV2, parseImportData } from '../logi
 import { generateAutoGrants } from '../logic/auto-grant';
 import { db } from '../db';
 
+function FiscalYearStartField({
+  value,
+  onCommit,
+}: {
+  value: string;
+  onCommit: (v: string) => void;
+}) {
+  // ローカル state で入力し onBlur で確定（入力中の DB 書込→再レンダによるカーソル飛びを防ぐ）
+  const [local, setLocal] = useState(value);
+  return (
+    <input
+      id="fiscal-year-start"
+      type="text"
+      placeholder="04-01"
+      value={local}
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={() => {
+        if (local !== value) onCommit(local);
+      }}
+      enterKeyHint="done"
+      className="mt-1 w-full rounded-xl border border-surface bg-surface-bright px-4 py-3 text-base leading-relaxed text-text focus:border-lavender focus:outline-none focus:ring-2 focus:ring-lavender/40"
+    />
+  );
+}
+
 export function SettingsPage() {
   const { grants, addGrant, deleteGrant } = useGrants();
   const { settings, updateSettings } = useSettings();
@@ -242,15 +267,9 @@ export function SettingsPage() {
               <label htmlFor="fiscal-year-start" className="block text-sm font-bold leading-relaxed">
                 ねんどのはじまり
               </label>
-              <input
-                id="fiscal-year-start"
-                type="text"
-                placeholder="04-01"
+              <FiscalYearStartField
                 value={settings?.fiscalYearStart ?? ''}
-                onChange={(e) =>
-                  updateSettings({ fiscalYearStart: e.target.value })
-                }
-                className="mt-1 w-full rounded-xl border border-surface px-3 py-2 text-base leading-relaxed"
+                onCommit={(v) => updateSettings({ fiscalYearStart: v })}
               />
               <p className="mt-1 text-xs text-text-sub leading-relaxed">
                 れい: 04-01（4がつ1にち）

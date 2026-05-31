@@ -1,8 +1,147 @@
 import { useRef, useState } from 'react'
+import type { Profile } from '../db/types'
 import { useProfiles } from '../hooks/useProfiles'
 import { useSetActiveProfile } from '../contexts/ActiveProfileContext'
 
 const PROFILE_COLORS = ['#C4B5FD', '#A7F3D0', '#FECDD3', '#FDE68A', '#BFDBFE'] as const
+
+// iOS 風のフォーム入力スタイル（大きめタップ領域・角丸・明確なフォーカスリング）
+const FIELD_CLASS =
+  'mt-1 w-full rounded-xl border border-surface bg-surface-bright px-4 py-3 text-base leading-relaxed text-text focus:border-lavender focus:outline-none focus:ring-2 focus:ring-lavender/40'
+
+function ProfileRow({
+  profile,
+  canDelete,
+  onUpdate,
+  onDelete,
+  onExport,
+}: {
+  profile: Profile
+  canDelete: boolean
+  onUpdate: (id: number, changes: Partial<Omit<Profile, 'id'>>) => void
+  onDelete: (id: number, name: string) => void
+  onExport: (id: number, name: string) => void
+}) {
+  const id = profile.id
+  // ローカル state で入力（IME 変換中に DB へ書かず composition を壊さない）
+  const [name, setName] = useState(profile.name)
+  const [hireDate, setHireDate] = useState(profile.hireDate)
+  const [order, setOrder] = useState(String(profile.order))
+  const deleteDisabled = !canDelete || id === undefined
+
+  function commitName() {
+    if (id !== undefined && name.trim() && name !== profile.name) {
+      onUpdate(id, { name: name.trim() })
+    }
+  }
+  function commitOrder() {
+    if (id === undefined) return
+    const n = Number(order)
+    if (!Number.isNaN(n) && n !== profile.order) onUpdate(id, { order: n })
+  }
+
+  return (
+    <div className="rounded-2xl border-2 border-surface bg-surface p-3">
+      <div className="grid gap-3">
+        <div>
+          <label htmlFor={`profile-name-${id}`} className="block text-sm font-bold leading-relaxed">
+            なまえ
+          </label>
+          <input
+            id={`profile-name-${id}`}
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={commitName}
+            enterKeyHint="done"
+            className={FIELD_CLASS}
+          />
+        </div>
+
+        <div>
+          <p className="text-sm font-bold leading-relaxed">いろ</p>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {PROFILE_COLORS.map((color) => {
+              const selected = profile.color === color
+              return (
+                <button
+                  key={color}
+                  type="button"
+                  aria-label={`${profile.name} の色 ${color}`}
+                  aria-pressed={selected}
+                  onClick={() => {
+                    if (id !== undefined) onUpdate(id, { color })
+                  }}
+                  className={`min-h-11 min-w-11 rounded-full border-2 transition-colors ${
+                    selected ? 'border-lavender-dark shadow-sm' : 'border-surface-bright'
+                  }`}
+                  style={{ backgroundColor: color }}
+                />
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label htmlFor={`profile-hire-date-${id}`} className="block text-sm font-bold leading-relaxed">
+              にゅうしゃ日
+            </label>
+            <input
+              id={`profile-hire-date-${id}`}
+              type="date"
+              value={hireDate}
+              onChange={(e) => {
+                setHireDate(e.target.value)
+                if (id !== undefined) onUpdate(id, { hireDate: e.target.value })
+              }}
+              className={FIELD_CLASS}
+            />
+          </div>
+
+          <div>
+            <label htmlFor={`profile-order-${id}`} className="block text-sm font-bold leading-relaxed">
+              ならび順
+            </label>
+            <input
+              id={`profile-order-${id}`}
+              type="number"
+              inputMode="numeric"
+              value={order}
+              onChange={(e) => setOrder(e.target.value)}
+              onBlur={commitOrder}
+              className={FIELD_CLASS}
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            aria-label={`${profile.name} を書き出す`}
+            onClick={() => {
+              if (id !== undefined) onExport(id, profile.name)
+            }}
+            className="min-h-[44px] flex-1 rounded-xl border border-lavender-dark px-3 py-2 text-base font-bold leading-relaxed text-lavender-dark transition-colors hover:bg-lavender-light active:scale-95"
+          >
+            書き出す
+          </button>
+          <button
+            type="button"
+            aria-label={`${profile.name} を削除`}
+            disabled={deleteDisabled}
+            onClick={() => {
+              if (id !== undefined) onDelete(id, profile.name)
+            }}
+            className="min-h-[44px] flex-1 rounded-xl border border-peach px-3 py-2 text-base font-bold leading-relaxed text-peach-dark transition-colors hover:bg-peach-light disabled:cursor-not-allowed disabled:border-surface disabled:text-text-sub disabled:opacity-60"
+          >
+            削除
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function ProfileSettings() {
   const { profiles, addProfile, updateProfile, deleteProfile, exportProfile, importProfile } =
@@ -68,133 +207,16 @@ export function ProfileSettings() {
   return (
     <div className="space-y-4">
       <div className="space-y-3">
-        {visibleProfiles.map((profile) => {
-          const deleteDisabled = !canDelete || profile.id === undefined
-          return (
-            <div
-              key={profile.id ?? profile.name}
-              className="rounded-2xl border-2 border-surface bg-surface p-3"
-            >
-              <div className="grid gap-3">
-                <div>
-                  <label
-                    htmlFor={`profile-name-${profile.id ?? profile.order}`}
-                    className="block text-sm font-bold leading-relaxed"
-                  >
-                    なまえ
-                  </label>
-                  <input
-                    id={`profile-name-${profile.id ?? profile.order}`}
-                    type="text"
-                    value={profile.name}
-                    onChange={(e) => {
-                      if (profile.id !== undefined) {
-                        void updateProfile(profile.id, { name: e.target.value })
-                      }
-                    }}
-                    className="mt-1 w-full rounded-xl border border-surface bg-surface-bright px-3 py-2 text-base leading-relaxed text-text"
-                  />
-                </div>
-
-                <div>
-                  <p className="text-sm font-bold leading-relaxed">いろ</p>
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    {PROFILE_COLORS.map((color) => {
-                      const selected = profile.color === color
-                      return (
-                        <button
-                          key={color}
-                          type="button"
-                          aria-label={`${profile.name} の色 ${color}`}
-                          aria-pressed={selected}
-                          onClick={() => {
-                            if (profile.id !== undefined) {
-                              void updateProfile(profile.id, { color })
-                            }
-                          }}
-                          className={`min-h-10 min-w-10 rounded-full border-2 transition-colors ${
-                            selected ? 'border-lavender-dark shadow-sm' : 'border-surface-bright'
-                          }`}
-                          style={{ backgroundColor: color }}
-                        />
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label
-                      htmlFor={`profile-hire-date-${profile.id ?? profile.order}`}
-                      className="block text-sm font-bold leading-relaxed"
-                    >
-                      にゅうしゃ日
-                    </label>
-                    <input
-                      id={`profile-hire-date-${profile.id ?? profile.order}`}
-                      type="date"
-                      value={profile.hireDate}
-                      onChange={(e) => {
-                        if (profile.id !== undefined) {
-                          void updateProfile(profile.id, { hireDate: e.target.value })
-                        }
-                      }}
-                      className="mt-1 w-full rounded-xl border border-surface bg-surface-bright px-3 py-2 text-base leading-relaxed text-text"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor={`profile-order-${profile.id ?? profile.order}`}
-                      className="block text-sm font-bold leading-relaxed"
-                    >
-                      ならび順
-                    </label>
-                    <input
-                      id={`profile-order-${profile.id ?? profile.order}`}
-                      type="number"
-                      value={profile.order}
-                      onChange={(e) => {
-                        if (profile.id !== undefined) {
-                          void updateProfile(profile.id, { order: Number(e.target.value) })
-                        }
-                      }}
-                      className="mt-1 w-full rounded-xl border border-surface bg-surface-bright px-3 py-2 text-base leading-relaxed text-text"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    aria-label={`${profile.name} を書き出す`}
-                    onClick={() => {
-                      if (profile.id !== undefined) {
-                        void handleExportProfile(profile.id, profile.name)
-                      }
-                    }}
-                    className="min-h-[44px] flex-1 rounded-xl border border-lavender-dark px-3 py-2 text-base font-bold leading-relaxed text-lavender-dark transition-colors hover:bg-lavender-light active:scale-95"
-                  >
-                    書き出す
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`${profile.name} を削除`}
-                    disabled={deleteDisabled}
-                    onClick={() => {
-                      if (profile.id !== undefined) {
-                        void handleDeleteProfile(profile.id, profile.name)
-                      }
-                    }}
-                    className="min-h-[44px] flex-1 rounded-xl border border-peach px-3 py-2 text-base font-bold leading-relaxed text-peach-dark transition-colors hover:bg-peach-light disabled:cursor-not-allowed disabled:border-surface disabled:text-text-sub disabled:opacity-60"
-                  >
-                    削除
-                  </button>
-                </div>
-              </div>
-            </div>
-          )
-        })}
+        {visibleProfiles.map((profile) => (
+          <ProfileRow
+            key={profile.id ?? profile.name}
+            profile={profile}
+            canDelete={canDelete}
+            onUpdate={(id, changes) => void updateProfile(id, changes)}
+            onDelete={(id, name) => void handleDeleteProfile(id, name)}
+            onExport={(id, name) => void handleExportProfile(id, name)}
+          />
+        ))}
       </div>
 
       <form onSubmit={handleAddProfile} className="rounded-2xl border-2 border-dashed border-lavender/70 bg-surface p-3">
@@ -208,7 +230,8 @@ export function ProfileSettings() {
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="なまえ"
-            className="min-w-0 flex-1 rounded-xl border border-surface bg-surface-bright px-3 py-2 text-base leading-relaxed text-text"
+            enterKeyHint="done"
+            className="min-w-0 flex-1 rounded-xl border border-surface bg-surface-bright px-4 py-3 text-base leading-relaxed text-text focus:border-lavender focus:outline-none focus:ring-2 focus:ring-lavender/40"
           />
           <button
             type="submit"

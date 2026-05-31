@@ -1,10 +1,18 @@
 import type { Grant } from '../db/types'
 import { getGrantDaysByRule, type GrantRuleConfig } from './grant-rules'
+import { getGrantMonth } from './grant-cycle'
+
+function toLocalISO(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
 /**
- * 入社日とルールから、付与されるべきGrant一覧を生成する。
- * 付与月は毎年12月（入社から0.5年後の12月が最初）。
- * 今日以前の付与のみ生成（未来の付与は含まない）。
+ * 入社日とルールから、付与されるべき Grant 一覧を生成する。
+ * 付与は「基準日」方式: 入社日の6ヶ月後の月（getGrantMonth と一致）の1日に初回付与し、
+ * 以後は毎年その月の1日に付与する。今日以前の付与のみ生成（未来は含まない）。
  */
 export function generateAutoGrants(
   hireDate: string,
@@ -14,25 +22,14 @@ export function generateAutoGrants(
 ): Omit<Grant, 'id' | 'profileId'>[] {
   if (!hireDate || rules.length === 0) return []
 
-  const todayDate = today ? new Date(today) : new Date()
-  const hire = new Date(hireDate)
-  const hireYear = hire.getFullYear()
-  const hireMonth = hire.getMonth() // 0-indexed
+  const todayDate = today ? new Date(today + 'T00:00:00') : new Date()
+  const hire = new Date(hireDate + 'T00:00:00')
 
-  // 最初の付与: 入社から約0.5年後の12月
-  // 例: 2022年6月入社 → 2022年12月（6ヶ月後）
-  // 例: 2022年1月入社 → 2022年12月（11ヶ月後、0.5年は超えている）
-  // ルール: 入社年の12月が入社から6ヶ月以上後なら入社年12月、そうでなければ翌年12月
-  let firstGrantYear: number
-  const decemberOfHireYear = new Date(hireYear, 11, 1) // 12月1日
-  const monthsDiff = (decemberOfHireYear.getFullYear() - hire.getFullYear()) * 12
-    + decemberOfHireYear.getMonth() - hireMonth
-
-  if (monthsDiff >= 6) {
-    firstGrantYear = hireYear
-  } else {
-    firstGrantYear = hireYear + 1
-  }
+  // 付与月（0-indexed）。サイクル計算 getGrantMonth と同一の「入社月+6ヶ月」。
+  const grantMonth0 = getGrantMonth(hireDate) - 1
+  // 初回付与 = 入社の6ヶ月後の月の1日
+  const firstGrant = new Date(hire.getFullYear(), hire.getMonth() + 6, 1)
+  const firstGrantYear = firstGrant.getFullYear()
 
   const newGrants: Omit<Grant, 'id' | 'profileId'>[] = []
   const existingGrantDates = new Set(
@@ -40,17 +37,19 @@ export function generateAutoGrants(
   )
 
   for (let year = firstGrantYear; ; year++) {
-    const grantDate = `${year}-12-01`
-    const grantDateObj = new Date(grantDate)
+    const grantDateObj = new Date(year, grantMonth0, 1)
 
     // 今日より後の付与は生成しない
     if (grantDateObj > todayDate) break
 
-    // 既に同じ付与日のGrantがあればスキップ
+    const grantDate = toLocalISO(grantDateObj)
+
+    // 既に同じ付与日の有給があればスキップ
     if (existingGrantDates.has(grantDate)) continue
 
-    // 入社日からの年数を計算
-    const yearsOfService = (grantDateObj.getTime() - hire.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+    // 入社日からの勤続年数
+    const yearsOfService =
+      (grantDateObj.getTime() - hire.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
     const roundedYears = Math.round(yearsOfService * 10) / 10
 
     const totalDays = getGrantDaysByRule(rules, roundedYears)
@@ -61,14 +60,11 @@ export function generateAutoGrants(
     expiry.setFullYear(expiry.getFullYear() + 2)
     expiry.setDate(expiry.getDate() - 1)
 
-    // 年度: 付与月が12月なので、4月始まりなら同年度
-    const fiscalYear = year
-
     newGrants.push({
       leaveKind: 'paid',
-      fiscalYear,
+      fiscalYear: year,
       grantDate,
-      expiryDate: expiry.toISOString().split('T')[0],
+      expiryDate: toLocalISO(expiry),
       totalDays,
       source: 'new',
     })
