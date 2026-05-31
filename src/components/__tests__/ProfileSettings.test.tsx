@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ProfileSettings } from '../ProfileSettings'
 import * as profilesHook from '../../hooks/useProfiles'
+import * as activeProfileContext from '../../contexts/ActiveProfileContext'
 
 describe('ProfileSettings', () => {
   afterEach(() => {
@@ -24,7 +25,10 @@ describe('ProfileSettings', () => {
       updateProfile: vi.fn(),
       deleteProfile: vi.fn(),
       ensureDefaultProfile: vi.fn(),
+      exportProfile: vi.fn(),
+      importProfile: vi.fn(),
     })
+    vi.spyOn(activeProfileContext, 'useSetActiveProfile').mockReturnValue(vi.fn())
 
     render(<ProfileSettings />)
 

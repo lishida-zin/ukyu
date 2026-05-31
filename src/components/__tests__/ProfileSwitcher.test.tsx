@@ -37,6 +37,8 @@ describe('ProfileSwitcher', () => {
       updateProfile: vi.fn(),
       deleteProfile: vi.fn(),
       ensureDefaultProfile: vi.fn(),
+      exportProfile: vi.fn(),
+      importProfile: vi.fn(),
     })
     vi.spyOn(activeProfileContext, 'useActiveProfileId').mockReturnValue(1)
     vi.spyOn(activeProfileContext, 'useSetActiveProfile').mockReturnValue(setActiveProfile)

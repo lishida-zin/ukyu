@@ -2,6 +2,12 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import type { Profile } from '../db/types';
 import { buildDefaultProfile } from '../logic/migration';
+import {
+  exportProfileData,
+  importProfileData,
+  parseProfileImport,
+  serializeProfileExport,
+} from '../logic/profile-transfer';
 
 type ProfileDraft = Pick<Profile, 'name' | 'color' | 'hireDate'> &
   Partial<Pick<Profile, 'order' | 'createdAt'>>;
@@ -56,5 +62,24 @@ export function useProfiles() {
     );
   }
 
-  return { profiles, addProfile, updateProfile, deleteProfile, ensureDefaultProfile };
+  /** 指定プロフィールのデータ一式を JSON 文字列として書き出す。 */
+  async function exportProfile(id: number): Promise<string> {
+    return serializeProfileExport(await exportProfileData(db, id));
+  }
+
+  /** JSON を新しいプロフィール（タブ）として取り込み、新 profileId を返す。 */
+  async function importProfile(json: string): Promise<number> {
+    const data = parseProfileImport(json);
+    return importProfileData(db, data, new Date().toISOString());
+  }
+
+  return {
+    profiles,
+    addProfile,
+    updateProfile,
+    deleteProfile,
+    ensureDefaultProfile,
+    exportProfile,
+    importProfile,
+  };
 }
