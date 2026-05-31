@@ -232,6 +232,9 @@ export function CalendarPage({ initialDate, onInitialDateConsumed }: CalendarPag
   const activeGrants = (grants ?? [])
     .filter((g) => g.leaveKind === 'paid' && g.expiryDate >= today)
     .sort((a, b) => a.expiryDate.localeCompare(b.expiryDate))
+  const activeRefreshGrants = (grants ?? [])
+    .filter((g) => g.leaveKind === 'refresh' && g.expiryDate >= today)
+    .sort((a, b) => a.expiryDate.localeCompare(b.expiryDate))
   const refreshGrantIds = new Set(
     (grants ?? []).flatMap((g) =>
       g.leaveKind === 'refresh' && g.id !== undefined ? [g.id] : [],
@@ -353,10 +356,11 @@ export function CalendarPage({ initialDate, onInitialDateConsumed }: CalendarPag
         onClose={() => { setSelectedDate(null); setIsFromOverdue(false) }}
         title={existingUsage ? '有給へんしゅう' : '有給とうろく'}
       >
-        {selectedDate && activeGrants.length > 0 ? (
+        {selectedDate && (activeGrants.length > 0 || activeRefreshGrants.length > 0) ? (
           <UsageForm
             date={selectedDate}
-            grants={activeGrants}
+            paidGrants={activeGrants}
+            refreshGrants={activeRefreshGrants}
             existing={existingUsage}
             defaultStatus={isFromOverdue ? 'used' : undefined}
             onSubmit={handleSubmit}

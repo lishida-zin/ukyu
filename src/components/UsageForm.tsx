@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import type { Grant, Usage, UsageType, UsageStatus } from '../db/types'
+import type { Grant, Usage, UsageType, UsageStatus, LeaveKind } from '../db/types'
 
 interface Props {
   date: string
-  grants: Grant[]
+  paidGrants: Grant[]
+  refreshGrants: Grant[]
   existing?: Usage
   defaultStatus?: UsageStatus
   onSubmit: (data: {
@@ -28,13 +29,31 @@ const USAGE_STATUSES: { value: UsageStatus; icon: string; label: string }[] = [
   { value: 'used', icon: '🎉', label: 'つかった' },
 ]
 
-export function UsageForm({ date, grants, existing, defaultStatus, onSubmit, onDelete, onClose }: Props) {
+const LEAVE_KINDS: { value: LeaveKind; icon: string; label: string }[] = [
+  { value: 'paid', icon: '🏖️', label: '有給' },
+  { value: 'refresh', icon: '🌿', label: 'リフレッシュ' },
+]
+
+export function UsageForm({ date, paidGrants, refreshGrants, existing, defaultStatus, onSubmit, onDelete, onClose }: Props) {
+  const initialKind: LeaveKind = existing
+    ? refreshGrants.some((g) => g.id === existing.grantId)
+      ? 'refresh'
+      : 'paid'
+    : paidGrants.length > 0
+      ? 'paid'
+      : 'refresh'
+  const [kind, setKind] = useState<LeaveKind>(initialKind)
   const [type, setType] = useState<UsageType>(existing?.type ?? 'full')
   const [status, setStatus] = useState<UsageStatus>(defaultStatus ?? existing?.status ?? 'planned')
   const [memo, setMemo] = useState(existing?.memo ?? '')
 
-  // 古い付与（期限が近い順）から自動選択
-  const grantId = existing?.grantId ?? grants[0]?.id
+  const showKindToggle = refreshGrants.length > 0
+  const pool = kind === 'refresh' ? refreshGrants : paidGrants
+  // 選択中の種別に既存付与があればそれを、無ければ期限が近い付与を自動選択
+  const grantId =
+    existing && pool.some((g) => g.id === existing.grantId)
+      ? existing.grantId
+      : pool[0]?.id
 
   const dateObj = new Date(date + 'T00:00:00')
   const displayDate = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`
@@ -49,6 +68,30 @@ export function UsageForm({ date, grants, existing, defaultStatus, onSubmit, onD
       <p className="text-center text-lg font-bold leading-relaxed">
         📅 {displayDate}
       </p>
+
+      {/* 休暇の種類（リフレッシュ休暇がある場合のみ選択可） */}
+      {showKindToggle && (
+        <div>
+          <div className="grid grid-cols-2 gap-2" role="group" aria-label="きゅうかの種類">
+            {LEAVE_KINDS.map((k) => (
+              <button
+                key={k.value}
+                type="button"
+                onClick={() => setKind(k.value)}
+                aria-pressed={kind === k.value}
+                className={`rounded-xl border-2 py-3 text-base font-medium leading-relaxed transition-colors ${
+                  kind === k.value
+                    ? 'border-lavender-dark bg-surface-bright text-lavender-dark shadow-sm'
+                    : 'border-surface bg-surface text-text-sub'
+                }`}
+              >
+                <span className="block text-lg">{k.icon}</span>
+                {k.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Usage type */}
       <div>
