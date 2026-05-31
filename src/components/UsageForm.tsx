@@ -16,6 +16,7 @@ interface Props {
   }) => void
   onDelete?: () => void
   onClose: () => void
+  onOpenSettings?: () => void
 }
 
 const USAGE_TYPES: { value: UsageType; icon: string; label: string }[] = [
@@ -34,7 +35,7 @@ const LEAVE_KINDS: { value: LeaveKind; icon: string; label: string }[] = [
   { value: 'refresh', icon: '🌿', label: 'リフレッシュ' },
 ]
 
-export function UsageForm({ date, paidGrants, refreshGrants, existing, defaultStatus, onSubmit, onDelete, onClose }: Props) {
+export function UsageForm({ date, paidGrants, refreshGrants, existing, defaultStatus, onSubmit, onDelete, onClose, onOpenSettings }: Props) {
   const initialKind: LeaveKind = existing
     ? refreshGrants.some((g) => g.id === existing.grantId)
       ? 'refresh'
@@ -68,6 +69,23 @@ export function UsageForm({ date, paidGrants, refreshGrants, existing, defaultSt
       <p className="text-center text-lg font-bold leading-relaxed">
         📅 {displayDate}
       </p>
+
+      {/* リフレッシュ休暇が未設定のときは、設定への導線を出す */}
+      {!showKindToggle && onOpenSettings && (
+        <div className="rounded-xl border-2 border-mint/60 bg-mint-light/40 px-3 py-2.5 leading-relaxed text-mint-dark">
+          <p className="text-sm font-bold">🌿 リフレッシュ休暇も とうろくできます</p>
+          <p className="mt-1 text-sm text-text-sub">
+            せっていで「ゆうこうにする」をオンにすると、ここで有給とえらべるようになります。
+          </p>
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className="mt-2 rounded-lg border border-mint-dark bg-surface-bright px-3 py-1.5 text-sm font-bold text-mint-dark transition-transform active:scale-95"
+          >
+            せっていをひらく →
+          </button>
+        </div>
+      )}
 
       {/* 休暇の種類（リフレッシュ休暇がある場合のみ選択可） */}
       {showKindToggle && (

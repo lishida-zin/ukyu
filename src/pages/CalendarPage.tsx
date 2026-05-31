@@ -206,9 +206,10 @@ function UsageHistory({
 interface CalendarPageProps {
   initialDate?: string | null
   onInitialDateConsumed?: () => void
+  onOpenSettings?: () => void
 }
 
-export function CalendarPage({ initialDate, onInitialDateConsumed }: CalendarPageProps) {
+export function CalendarPage({ initialDate, onInitialDateConsumed, onOpenSettings }: CalendarPageProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [isFromOverdue, setIsFromOverdue] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('cal')
@@ -262,6 +263,12 @@ export function CalendarPage({ initialDate, onInitialDateConsumed }: CalendarPag
   function handleOverdueDateClick(date: string) {
     setSelectedDate(date)
     setIsFromOverdue(true)
+  }
+
+  function handleOpenSettings() {
+    setSelectedDate(null)
+    setIsFromOverdue(false)
+    onOpenSettings?.()
   }
 
   async function handleSubmit(data: {
@@ -366,6 +373,7 @@ export function CalendarPage({ initialDate, onInitialDateConsumed }: CalendarPag
             onSubmit={handleSubmit}
             onDelete={existingUsage ? handleDelete : undefined}
             onClose={() => { setSelectedDate(null); setIsFromOverdue(false) }}
+            onOpenSettings={onOpenSettings ? handleOpenSettings : undefined}
           />
         ) : (
           <div className="py-4 text-center text-text-sub">

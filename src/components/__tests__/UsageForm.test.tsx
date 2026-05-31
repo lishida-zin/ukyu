@@ -64,4 +64,38 @@ describe('UsageForm', () => {
     await user.click(screen.getByText('とうろく'))
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ grantId: 2 }))
   })
+
+  it('リフレッシュ付与が無く onOpenSettings があるとき、設定への導線を表示しクリックで呼ぶ', async () => {
+    const user = userEvent.setup()
+    const onOpenSettings = vi.fn()
+    render(
+      <UsageForm
+        date="2026-06-10"
+        paidGrants={[paidGrant]}
+        refreshGrants={[]}
+        onSubmit={vi.fn()}
+        onClose={vi.fn()}
+        onOpenSettings={onOpenSettings}
+      />,
+    )
+
+    const link = screen.getByRole('button', { name: /せっていをひらく/ })
+    await user.click(link)
+    expect(onOpenSettings).toHaveBeenCalledTimes(1)
+  })
+
+  it('リフレッシュ付与があるときは設定への導線を出さない', () => {
+    render(
+      <UsageForm
+        date="2026-06-10"
+        paidGrants={[paidGrant]}
+        refreshGrants={[refreshGrant]}
+        onSubmit={vi.fn()}
+        onClose={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: /せっていをひらく/ })).toBeNull()
+  })
 })

@@ -41,7 +41,11 @@ function FiscalYearStartField({
   );
 }
 
-export function SettingsPage() {
+interface SettingsPageProps {
+  initialOpenSection?: 'refresh';
+}
+
+export function SettingsPage({ initialOpenSection }: SettingsPageProps = {}) {
   const { grants, addGrant, deleteGrant } = useGrants();
   const { settings, updateSettings } = useSettings();
   const { rules } = useGrantRules();
@@ -286,7 +290,7 @@ export function SettingsPage() {
         </Card>
       </Collapsible>
 
-      <Collapsible title="🌿 リフレッシュ休暇" defaultOpen={false} color="mint">
+      <Collapsible title="🌿 リフレッシュ休暇" defaultOpen={initialOpenSection === 'refresh'} color="mint">
         <Card>
           <RefreshLeaveSettings />
         </Card>

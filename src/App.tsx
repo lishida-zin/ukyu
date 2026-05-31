@@ -14,6 +14,7 @@ import { getDefaultGrantRules } from './logic/grant-rules'
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('calendar')
   const [calendarTarget, setCalendarTarget] = useState<string | null>(null)
+  const [settingsRefreshFocus, setSettingsRefreshFocus] = useState(false)
   const { grants, addGrant } = useGrants()
   const { rules } = useGrantRules()
   const { syncRefreshGrants } = useRefreshRule()
@@ -52,23 +53,38 @@ export default function App() {
     void syncRefreshGrants()
   }, [activeProfileId, syncRefreshGrants])
 
+  // タブ移動（通常導線）。リフレッシュ設定への自動オープンはリセットする。
+  function goToTab(tab: TabId) {
+    setSettingsRefreshFocus(false)
+    setActiveTab(tab)
+  }
+
+  // カレンダーの「せっていをひらく」導線。設定のリフレッシュ休暇を開いた状態で表示する。
+  function openSettingsForRefresh() {
+    setSettingsRefreshFocus(true)
+    setActiveTab('settings')
+  }
+
   return (
     <div className="min-h-screen bg-bg text-text font-sans leading-relaxed">
       <main className="pb-20 px-4 pt-4">
         {activeTab === 'calendar' && (
           <>
-            <ProfileSwitcher onAddProfileClick={() => setActiveTab('settings')} />
+            <ProfileSwitcher onAddProfileClick={() => goToTab('settings')} />
             <div className="mt-3">
               <CalendarPage
                 initialDate={calendarTarget}
                 onInitialDateConsumed={() => setCalendarTarget(null)}
+                onOpenSettings={openSettingsForRefresh}
               />
             </div>
           </>
         )}
-        {activeTab === 'settings' && <SettingsPage />}
+        {activeTab === 'settings' && (
+          <SettingsPage initialOpenSection={settingsRefreshFocus ? 'refresh' : undefined} />
+        )}
       </main>
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomNav activeTab={activeTab} onTabChange={goToTab} />
     </div>
   )
 }
