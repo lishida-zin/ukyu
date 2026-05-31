@@ -214,6 +214,10 @@ export function CalendarPage({ initialDate, onInitialDateConsumed, onOpenSetting
   const [isFromOverdue, setIsFromOverdue] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('cal')
 
+  // 過期通知からの deep-link(initialDate prop)を受けて該当日を開く副作用。
+  // prop 変化に応じた state 反映 + 親への consumed 通知で、effect 内 setState が正当。
+  // 該当フローの自動テストが無いため、リスクのあるリファクタは避けて局所的に許容する。
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (initialDate) {
       setSelectedDate(initialDate)
@@ -222,6 +226,7 @@ export function CalendarPage({ initialDate, onInitialDateConsumed, onOpenSetting
       onInitialDateConsumed?.()
     }
   }, [initialDate, onInitialDateConsumed])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const { usages, addUsage, updateUsage, deleteUsage } = useUsages()
   const { grants } = useGrants()

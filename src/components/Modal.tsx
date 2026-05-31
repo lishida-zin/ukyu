@@ -17,6 +17,9 @@ export function Modal({ open, onClose, title, children }: Props) {
   useEffect(() => {
     if (open) {
       dialogRef.current?.focus()
+      // 開くたびに前回のドラッグ位置を必ずリセット（スワイプで閉じた後の再オープン対策）。
+      // 外部トリガ(open)に応じた UI state 同期で、ハンドラ移設は close-mid-drag のガードを失う。
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDragY(0)
     }
   }, [open])
@@ -68,7 +71,9 @@ export function Modal({ open, onClose, title, children }: Props) {
         className="relative w-full rounded-t-3xl bg-surface-bright pb-[env(safe-area-inset-bottom)] p-6"
         style={{
           transform: `translateY(${dragY}px)`,
-          transition: isDragging.current ? 'none' : 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)',
+          // ドラッグ中(dragY>0)は追従させ transition なし、それ以外は戻り/開きを滑らかに。
+          // render 中の ref 参照を避けるため dragY から導出（isDragging ref はハンドラ専用）。
+          transition: dragY > 0 ? 'none' : 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)',
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}

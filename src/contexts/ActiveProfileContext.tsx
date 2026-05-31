@@ -1,3 +1,7 @@
+/* eslint-disable react-refresh/only-export-components --
+   Provider と専用フック(useActiveProfile 等)を同居させる定番構成。別ファイル分離は
+   13箇所の import 変更 + テストの `import * as` / vi.spyOn モック破壊を伴うため co-locate を許容。
+   Fast Refresh の DX のみに関わる lint で、本番挙動には影響しない。 */
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Profile } from '../db/types';
 import { ensureDefaultProfile, useProfiles } from '../hooks/useProfiles';
@@ -45,6 +49,9 @@ export function ActiveProfileProvider({ children }: { children: ReactNode }) {
 
     if (selected === undefined) return;
     if (selected !== activeProfileId) {
+      // 非同期の Dexie profiles ストア確定後に有効なアクティブ profile を選ぶ同期処理。
+      // 外部ストア→state の同期であり effect 内 setState が正当なケース。
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveProfileId(selected);
     }
     writeStoredActiveProfileId(selected);

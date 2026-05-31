@@ -21,7 +21,7 @@ function autumnEquinoxDay(year: number): number {
 /** Get the Nth weekday of a month (e.g., 2nd Monday) */
 function nthWeekday(year: number, month: number, weekday: number, n: number): number {
   const first = new Date(year, month - 1, 1).getDay()
-  let day = 1 + ((weekday - first + 7) % 7) + (n - 1) * 7
+  const day = 1 + ((weekday - first + 7) % 7) + (n - 1) * 7
   return day
 }
 
@@ -66,7 +66,7 @@ export function getHolidaysForYear(year: number): Holiday[] {
     const d = new Date(h.date + 'T00:00:00')
     if (d.getDay() === 0) {
       // Find next non-holiday weekday
-      let sub = new Date(d)
+      const sub = new Date(d)
       do {
         sub.setDate(sub.getDate() + 1)
       } while (
