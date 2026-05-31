@@ -48,35 +48,21 @@ export function useLeaveBalance() {
 
     const grantIds = new Set(grants.map((g) => g.id));
 
-    // Collect usages tied to expired or deleted grants (orphaned usages)
-    const expiredGrantIds = new Set(
-      grants.filter((g) => g.expiryDate < now).map((g) => g.id),
-    );
-    const orphanedUsages = usages.filter(
-      (u) => expiredGrantIds.has(u.grantId) || !grantIds.has(u.grantId),
-    );
-
-    // Sort active grants by expiry (oldest first) for orphan reassignment
-    const activeGrantsSorted = grants
-      .filter((g) => g.expiryDate >= now)
-      .sort((a, b) => a.expiryDate.localeCompare(b.expiryDate));
-
-    // Reassign orphaned usages to the oldest active grant for display purposes
-    const reassignedMap = new Map<number, typeof usages>();
+    // 各 usage はそれが紐づく付与にのみ計上する。
+    // 期限切れ付与の使用日数も元の付与に留め、他の（有効な）付与の残日数へ転嫁しない。
+    // 付与が削除済み（grantId が存在しない）usage は、どの付与の残日数にも影響させない。
+    const usagesByGrant = new Map<number, typeof usages>();
     for (const grant of grants) {
-      reassignedMap.set(grant.id!, []);
+      usagesByGrant.set(grant.id!, []);
     }
     for (const u of usages) {
-      if (orphanedUsages.includes(u) && activeGrantsSorted.length > 0) {
-        const targetId = activeGrantsSorted[0].id!;
-        reassignedMap.get(targetId)?.push(u);
-      } else if (grantIds.has(u.grantId)) {
-        reassignedMap.get(u.grantId)?.push(u);
+      if (grantIds.has(u.grantId)) {
+        usagesByGrant.get(u.grantId)?.push(u);
       }
     }
 
     const balances: GrantBalance[] = grants.map((grant) => {
-      const grantUsages = reassignedMap.get(grant.id!) ?? [];
+      const grantUsages = usagesByGrant.get(grant.id!) ?? [];
 
       let plannedDays = 0;
       let usedDays = 0;
