@@ -1,23 +1,32 @@
 interface Props {
   totalRemaining: number
+  totalPlanned: number
   cycleUsed: number
   cyclePlanned: number
   cycleExpiringDays: number
   cycle?: { start: string; end: string }
 }
 
-export function CalendarSummary({ totalRemaining, cycleUsed, cyclePlanned, cycleExpiringDays, cycle }: Props) {
+export function CalendarSummary({ totalRemaining, totalPlanned, cycleUsed, cyclePlanned, cycleExpiringDays, cycle }: Props) {
   // サイクル期間の消滅期限表示
   const expiryLabel = cycle ? `${cycle.end}まで` : undefined
+  // 予定をすべて消化したと仮定したときの、じっさいに自由につかえるのこり
+  const remainingAfterPlanned = totalRemaining - totalPlanned
 
   return (
     <div className="grid grid-cols-2 gap-2">
+      {/* のこりカードには「現在の残り」と「予定を引いた残り」の 2 つを表示 */}
       <StatCard
         icon="✨"
         label="のこり"
         value={totalRemaining}
         unit="日"
         color="lavender"
+        secondary={
+          totalPlanned > 0
+            ? { label: 'よていをひくと', value: remainingAfterPlanned, unit: '日' }
+            : undefined
+        }
       />
       <StatCard
         icon="🎉"
@@ -52,6 +61,7 @@ function StatCard({
   unit,
   color,
   sub,
+  secondary,
 }: {
   icon: string
   label: string
@@ -59,6 +69,7 @@ function StatCard({
   unit: string
   color: 'lavender' | 'peach' | 'mint' | 'warn'
   sub?: string
+  secondary?: { label: string; value: number; unit: string }
 }) {
   const styles = {
     lavender: 'bg-lavender-light/40 text-lavender-dark border-lavender/50',
@@ -77,6 +88,13 @@ function StatCard({
         <span className="text-3xl font-bold">{value}</span>
         <span className="text-base font-medium opacity-70">{unit}</span>
       </div>
+      {secondary && (
+        <div className="mt-1.5 flex items-baseline gap-1 border-t border-current/15 pt-1.5">
+          <span className="text-xs font-medium opacity-70">{secondary.label}</span>
+          <span className="text-xl font-bold">{secondary.value}</span>
+          <span className="text-xs font-medium opacity-70">{secondary.unit}</span>
+        </div>
+      )}
       {sub && (
         <p className="mt-0.5 text-xs opacity-60">{sub}</p>
       )}

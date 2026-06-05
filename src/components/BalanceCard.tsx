@@ -9,6 +9,8 @@ interface Props {
 export function BalanceCard({ balance }: Props) {
   const { source, fiscalYear, totalDays, plannedDays, usedDays, remainingDays, expiredDays, expiryDate, isExpired, isExpiringSoon } = balance
   const consumedDays = plannedDays + usedDays
+  // 予定をすべて消化したと仮定したときの、じっさいに自由につかえるのこり
+  const remainingAfterPlanned = remainingDays - plannedDays
 
   const borderColor = isExpired
     ? 'border-gray-300 border opacity-60'
@@ -45,9 +47,16 @@ export function BalanceCard({ balance }: Props) {
         )}
       </div>
 
-      <div className="flex items-baseline gap-2 mb-3">
-        <span className="text-3xl font-bold text-text">{remainingDays}</span>
-        <span className="text-sm text-text-sub">/ {totalDays} 日のこり</span>
+      <div className="mb-3">
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-bold text-text">{remainingDays}</span>
+          <span className="text-sm text-text-sub">/ {totalDays} 日のこり</span>
+        </div>
+        {plannedDays > 0 && (
+          <p className="mt-1 text-xs text-text-sub">
+            よていをひくと {remainingAfterPlanned}日
+          </p>
+        )}
       </div>
 
       <ProgressBar
