@@ -6,6 +6,8 @@ interface Props {
 
 export function RefreshSummary({ summary }: Props) {
   const expiringOrExpiredDays = summary.expiringSoonDays + summary.expiredDays;
+  // 予定をすべて消化したと仮定したときの、じっさいに自由につかえるのこり
+  const remainingAfterPlanned = summary.totalRemaining - summary.totalPlanned;
 
   return (
     <section className="rounded-2xl border-2 border-mint/70 bg-surface-bright p-3 shadow-sm">
@@ -24,6 +26,7 @@ export function RefreshSummary({ summary }: Props) {
           value={summary.totalRemaining}
           unit="日"
           color="mint"
+          sub={summary.totalPlanned > 0 ? `よていをひくと ${remainingAfterPlanned}日` : undefined}
         />
         <StatCard
           icon="🎉"
@@ -50,12 +53,14 @@ function StatCard({
   value,
   unit,
   color,
+  sub,
 }: {
   icon: string;
   label: string;
   value: number;
   unit: string;
   color: 'lavender' | 'peach' | 'mint' | 'warn';
+  sub?: string;
 }) {
   const styles = {
     lavender: 'bg-lavender-light/40 text-lavender-dark border-lavender/50',
@@ -74,6 +79,7 @@ function StatCard({
         <span className="text-3xl font-bold">{value}</span>
         <span className="text-base font-medium opacity-70">{unit}</span>
       </div>
+      {sub && <p className="mt-0.5 text-xs opacity-60">{sub}</p>}
     </div>
   );
 }

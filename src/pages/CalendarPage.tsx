@@ -230,7 +230,7 @@ export function CalendarPage({ initialDate, onInitialDateConsumed, onOpenSetting
 
   const { usages, addUsage, updateUsage, deleteUsage } = useUsages()
   const { grants } = useGrants()
-  const { balances, totalRemaining, cycleUsed, cyclePlanned, cycleExpiringDays, cycle } = useLeaveBalance()
+  const { balances, totalRemaining, totalPlanned, cycleUsed, cyclePlanned, cycleExpiringDays, cycle } = useLeaveBalance()
   const refreshSummary = useRefreshBalance()
   const { rule: refreshRule } = useRefreshRule()
 
@@ -308,6 +308,7 @@ export function CalendarPage({ initialDate, onInitialDateConsumed, onOpenSetting
       {balances && balances.length > 0 && (
         <CalendarSummary
           totalRemaining={totalRemaining}
+          totalPlanned={totalPlanned}
           cycleUsed={cycleUsed}
           cyclePlanned={cyclePlanned}
           cycleExpiringDays={cycleExpiringDays}
